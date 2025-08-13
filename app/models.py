@@ -17,9 +17,6 @@ class Conteudo(models.Model):
         if self.pai:
             return f"{self.nome} ({self.get_tipo_display()})"
         return f"{self.nome} ({self.get_tipo_display()})"
-    
-    class Meta:
-        ordering = ['']
 
 class Questao(models.Model):
     area = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_area')
