@@ -3,118 +3,161 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Cadastrar Questão</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cadastrar Questão</title>
   <link rel="stylesheet" href="{% static 'app/css/bootstrap.min.css' %}" />
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{% static 'app/js/bootstrap.min.js' %}"></script>
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 50px;
+    }
+
+    .form-title {
+      font-weight: 600;
+      font-size: 24px;
+      margin-bottom: 25px;
+    }
+
+    .form-label {
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
 
-  {% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="form-container">
+        <div class="form-title">Cadastrar Nova Questão</div>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" action="">
+          {% csrf_token %}
+
+          <!-- Área -->
+          <div class="mb-3">
+            <label for="area" class="form-label">Área</label>
+            <select name="area" id="area" class="form-select" required>
+              <option value="">Selecione</option>
+              {% for area in areas %}
+                <option value="{{ area.id }}">{{ area.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Unidade -->
+          <div class="mb-3">
+            <label for="unidade" class="form-label">Unidade</label>
+            <select name="unidade" id="unidade" class="form-select" disabled required>
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <!-- Tópico -->
+          <div class="mb-3">
+            <label for="topico" class="form-label">Tópico</label>
+            <select name="topico" id="topico" class="form-select" disabled required>
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <!-- Subtópico -->
+          <div class="mb-3">
+            <label for="subtopico" class="form-label">Subtópico</label>
+            <select name="subtopico" id="subtopico" class="form-select" disabled required>
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <!-- Categoria -->
+          <div class="mb-3">
+            <label for="categoria" class="form-label">Categoria</label>
+            <select name="categoria" id="categoria" class="form-select" disabled required>
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="ano" class="form-label">Ano</label>
+              <select name="ano" id="ano" class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="Todos">Todos</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="banca" class="form-label">Banca</label>
+              <select name="banca" id="banca" class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="Todas">Todas</option>
+                <option value="ENEM">ENEM</option>
+                <option value="FGV">FGV</option>
+                <option value="FUVEST">FUVEST</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="tipo_questao" class="form-label">Tipo de Questão</label>
+              <select name="tipo_questao" id="tipo_questao" class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="Todos">Todos</option>
+                <option value="Múltipla escolha">Múltipla escolha</option>
+                <option value="Discursiva">Discursiva</option>
+                <option value="Verdadeiro ou falso">Verdadeiro ou falso</option>
+                <option value="Somatório">Somatório</option>
+                <option value="Múltiplas respostas">Múltiplas respostas</option>
+                <option value="Analítica">Analítica (dissertativa)</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label for="nivel_dificuldade" class="form-label">Nível de Dificuldade</label>
+              <select name="nivel_dificuldade" id="nivel_dificuldade" class="form-select" required>
+                <option value="">Selecione</option>
+                <option value="Todas">Todas</option>
+                <option value="Fáceis">Fáceis</option>
+                <option value="Médias">Médias</option>
+                <option value="Difíceis">Difíceis</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Enunciado -->
+          <div class="mb-4">
+            <label for="enunciado" class="form-label">Enunciado</label>
+            <textarea name="enunciado" id="enunciado" rows="5" class="form-control" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Cadastrar Questão</button>
+        </form>
+      </div>
     </div>
-  {% endfor %}
-  {% endif %}
-
-<div class="container mt-5 mb-5" style="max-width: 600px;">
-  <h2 class="mb-4">Cadastrar Questão</h2>
-
-  <form method="post" action="">
-    {% csrf_token %}
-
-    <!-- Área -->
-    <div class="mb-3">
-      <label for="area" class="form-label">Área</label>
-      <select name="area" id="area" class="form-select" required>
-        <option value="">Selecione a área</option>
-        {% for area in areas %}
-          <option value="{{ area.id }}">{{ area.nome }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Unidade -->
-    <div class="mb-3">
-      <label for="unidade" class="form-label">Unidade</label>
-      <select name="unidade" id="unidade" class="form-select" disabled required>
-        <option value="">Selecione a unidade</option>
-      </select>
-    </div>
-
-    <!-- Tópico -->
-    <div class="mb-3">
-      <label for="topico" class="form-label">Tópico</label>
-      <select name="topico" id="topico" class="form-select" disabled required>
-        <option value="">Selecione o tópico</option>
-      </select>
-    </div>
-
-    <!-- Subtópico -->
-    <div class="mb-3">
-      <label for="subtopico" class="form-label">Subtópico</label>
-      <select name="subtopico" id="subtopico" class="form-select" disabled required>
-        <option value="">Selecione o subtópico</option>
-      </select>
-    </div>
-
-    <!-- Categoria -->
-    <div class="mb-3">
-      <label for="categoria" class="form-label">Categoria</label>
-      <select name="categoria" id="categoria" class="form-select" disabled required>
-        <option value="">Selecione a categoria</option>
-      </select>
-    </div>
-
-    <!-- Ano -->
-    <div class="mb-3">
-      <label for="ano" class="form-label">Ano</label>
-      <input type="number" name="ano" id="ano" class="form-control" required>
-    </div>
-
-    <!-- Banca -->
-    <div class="mb-3">
-      <label for="banca" class="form-label">Banca</label>
-      <select name="banca" id="banca" class="form-select" required>
-        <option value="">Selecione a banca</option>
-        <option value="Todas">Todas</option>
-        <option value="ENEM">ENEM</option>
-        <option value="FGV">FGV</option>
-        <option value="FUVEST">FUVEST</option>
-      </select>
-    </div>
-
-    <!-- Tipo de questão -->
-    <div class="mb-3">
-      <label for="tipo_questao" class="form-label">Tipo de questão</label>
-      <select name="tipo_questao" id="tipo_questao" class="form-select" required>
-        <option value="">Selecione o tipo</option>
-        <option value="Todos">Todos</option>
-        <option value="Múltipla escolha">Múltipla escolha</option>
-        <option value="Discursiva">Discursiva</option>
-        <option value="Verdadeiro ou falso">Verdadeiro ou falso</option>
-        <option value="Somatório">Somatório</option>
-        <option value="Múltiplas respostas">Múltiplas respostas</option>
-        <option value="Analítica">Analítica (dissertativa)</option>
-      </select>
-    </div>
-
-    <!-- Nível de dificuldade -->
-    <div class="mb-3">
-      <label for="dificuldade" class="form-label">Nível de dificuldade</label>
-      <select name="dificuldade" id="dificuldade" class="form-select" required>
-        <option value="">Selecione o nível</option>
-        <option value="Fáceis">Fácil</option>
-        <option value="Médias">Médio</option>
-        <option value="Difíceis">Difícil</option>
-      </select>
-    </div>
-
-    <button type="submit" class="btn btn-primary w-100">Cadastrar Questão</button>
-  </form>
+  </div>
 </div>
 
 <script>
