@@ -20,13 +20,14 @@ class Conteudo(models.Model):
 
 class Questao(models.Model):
     area = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_area')
-    unidade = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_unidade')
-    topico = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_topico')
-    subtopico = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_subtopico')
-    categoria = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_categoria')
+    unidade = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_unidade', null=True, blank=True)
+    topico = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_topico', null=True, blank=True)
+    subtopico = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_subtopico', null=True, blank=True)
+    categoria = models.ForeignKey('Conteudo', on_delete=models.PROTECT, related_name='q_categoria', null=True, blank=True)
 
     ano = models.IntegerField()
     banca = models.CharField(max_length=100)
     tipo_questao = models.CharField(max_length=50)
     dificuldade = models.CharField(max_length=20)
+    enunciado = models.TextField(default='')
 

@@ -67,7 +67,7 @@
           <!-- Unidade -->
           <div class="mb-3">
             <label for="unidade" class="form-label">Unidade</label>
-            <select name="unidade" id="unidade" class="form-select" disabled required>
+            <select name="unidade" id="unidade" class="form-select" disabled>
               <option value="">Selecione</option>
             </select>
           </div>
@@ -75,7 +75,7 @@
           <!-- Tópico -->
           <div class="mb-3">
             <label for="topico" class="form-label">Tópico</label>
-            <select name="topico" id="topico" class="form-select" disabled required>
+            <select name="topico" id="topico" class="form-select" disabled>
               <option value="">Selecione</option>
             </select>
           </div>
@@ -83,7 +83,7 @@
           <!-- Subtópico -->
           <div class="mb-3">
             <label for="subtopico" class="form-label">Subtópico</label>
-            <select name="subtopico" id="subtopico" class="form-select" disabled required>
+            <select name="subtopico" id="subtopico" class="form-select" disabled>
               <option value="">Selecione</option>
             </select>
           </div>
@@ -91,7 +91,7 @@
           <!-- Categoria -->
           <div class="mb-3">
             <label for="categoria" class="form-label">Categoria</label>
-            <select name="categoria" id="categoria" class="form-select" disabled required>
+            <select name="categoria" id="categoria" class="form-select" disabled>
               <option value="">Selecione</option>
             </select>
           </div>
@@ -99,17 +99,18 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="ano" class="form-label">Ano</label>
-              <input type="number" name="ano" id="ano" class="form-control" min="2000" max="2100" placeholder="Ex: 2025" required>
+              <input type="number" name="ano" id="ano" class="form-control" min="1900" max="2030" placeholder="Ex: 2025" required>
             </div>
 
             <div class="col-md-6 mb-3">
               <label for="banca" class="form-label">Banca</label>
               <select name="banca" id="banca" class="form-select" required>
                 <option value="">Selecione</option>
-                <option value="Todas">Todas</option>
-                <option value="ENEM">ENEM</option>
+                <option value="N_IDENTIFICADA">Não identificada</option>
+                <option value="ENEM">Enem</option>
                 <option value="FGV">FGV</option>
-                <option value="FUVEST">FUVEST</option>
+                <option value="FUVEST">Fuvest</option>
+                <option value="EDUQBANK">EduQbank</option>
               </select>
             </div>
           </div>
@@ -119,24 +120,22 @@
               <label for="tipo_questao" class="form-label">Tipo de Questão</label>
               <select name="tipo_questao" id="tipo_questao" class="form-select" required>
                 <option value="">Selecione</option>
-                <option value="Todos">Todos</option>
-                <option value="Múltipla escolha">Múltipla escolha</option>
-                <option value="Discursiva">Discursiva</option>
-                <option value="Verdadeiro ou falso">Verdadeiro ou falso</option>
-                <option value="Somatório">Somatório</option>
-                <option value="Múltiplas respostas">Múltiplas respostas</option>
-                <option value="Analítica">Analítica (dissertativa)</option>
+                <option value="multipla_escolha">Múltipla escolha</option>
+                <option value="discursiva">Discursiva</option>
+                <option value="verdadeiro_falso">Verdadeiro ou falso</option>
+                <option value="somatorio">Somatório</option>
+                <option value="multiplas_respostas">Múltiplas respostas</option>
+                <option value="analitica">Analítica (dissertativa)</option>
               </select>
             </div>
 
             <div class="col-md-6 mb-3">
-              <label for="nivel_dificuldade" class="form-label">Nível de Dificuldade</label>
-              <select name="nivel_dificuldade" id="nivel_dificuldade" class="form-select" required>
+              <label for="dificuldade" class="form-label">Nível de Dificuldade</label>
+              <select name="dificuldade" id="dificuldade" class="form-select" required>
                 <option value="">Selecione</option>
-                <option value="Todas">Todas</option>
-                <option value="Fáceis">Fáceis</option>
-                <option value="Médias">Médias</option>
-                <option value="Difíceis">Difíceis</option>
+                <option value="Fácil">Fácil</option>
+                <option value="Média">Média</option>
+                <option value="Difícil">Difícil</option>
               </select>
             </div>
           </div>

@@ -6,6 +6,11 @@ from django.contrib import messages
 
 def index(request):
     if request.method == 'POST':
+        data = request.POST.copy()
+        for campo in ['unidade', 'topico', 'subtopico', 'categoria']:
+            if not data.get(campo):
+                data[campo] = None
+
         form = QuestaoForm(request.POST)
         if form.is_valid():
             form.save()

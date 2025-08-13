@@ -8,5 +8,5 @@ class ConteudoAdmin(admin.ModelAdmin):
 
 @admin.register(Questao)
 class QuestaoAdmin(admin.ModelAdmin):
-    list_display = ('area', 'unidade', 'topico', 'subtopico', 'categoria', 'ano', 'banca', 'tipo_questao', 'dificuldade')
-    search_fields = ('area', 'unidade', 'topico', 'subtopico', 'categoria',)
+    list_display = ('area', 'unidade', 'topico', 'subtopico', 'categoria', 'ano', 'banca', 'tipo_questao', 'dificuldade', 'enunciado')
+    search_fields = ('area', 'unidade', 'topico', 'subtopico', 'categoria', 'enunciado')
