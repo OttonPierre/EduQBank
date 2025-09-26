@@ -31,3 +31,6 @@ def buscar_conteudos_filho(request):
 
     filhos = Conteudo.objects.filter(pai_id=pai_id).values('id', 'nome')
     return JsonResponse(list(filhos), safe=False)
+
+def inicio(request):
+    return render(request, 'app/inicio.html')
