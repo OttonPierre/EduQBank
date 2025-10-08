@@ -17,9 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
+from app import views
+from app.views import QuestaoViewSet
 
 urlpatterns = [
-    path("", include("app.urls")),
+    path("api/", include("app.urls")),
     path("admin/", admin.site.urls),
-    path('', TemplateView.as_view(template_name='index.html'))
+    path('', TemplateView.as_view(template_name='index.html')),
+    path("api/signup/", views.signup),
+    path("api/login/", views.login_view),
+    path("cadastro_questao/", views.cadastro_questao, name="cadastro_questao"),
+    path('buscar-conteudos/', views.buscar_conteudos_filho, name="buscar_conteudos"),
+    path('questoes/', views.list_questoes, name='list_questoes'),
+    path('questoes/<int:pk>/', views.questao_detail, name='questao_detail'),
 ]
