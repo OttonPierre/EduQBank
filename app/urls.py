@@ -1,16 +1,14 @@
-from django.urls import path
-from . import views
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import QuestaoViewSet
+from . import views
 
 router = DefaultRouter()
-router.register(r'questoes', QuestaoViewSet)
+router.register(r'questoes', views.QuestaoViewSet)
 
-urlpatterns =[
-    path("signup/", views.signup),
-    path("login/", views.login_view),
-    path("cadastro_questao/", views.cadastro_questao, name="cadastro_questao"),
-    path('buscar-conteudos/', views.buscar_conteudos_filho, name="buscar_conteudos"),
-    path('questoes/', views.list_questoes, name='list_questoes'),
-    path('questoes/<int:pk>/', views.questao_detail),
+urlpatterns = [
+    path('auth/signup/', views.signup, name='signup'),
+    path('auth/login/', views.login_view, name='login'),
+    path('upload-image/', views.upload_image, name='upload_image'),
+    path('buscar-conteudos/', views.buscar_conteudos_filho, name='buscar_conteudos'),
+    path('', include(router.urls)),
 ]

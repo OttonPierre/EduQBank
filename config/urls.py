@@ -17,24 +17,15 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.generic import TemplateView
 from app import views
-from app.views import QuestaoViewSet
 
 urlpatterns = [
-    path("api/", include("app.urls")),
-    path("admin/", admin.site.urls),
-    path('', TemplateView.as_view(template_name='index.html')),
+    path('admin/', admin.site.urls),
+    path('api/', include('app.urls')),  # TODAS as APIs aqui
     path('ckeditor5/', include('django_ckeditor_5.urls')),
-    path('upload_image/', views.upload_image, name='upload_image'),
-    path("api/signup/", views.signup),
-    path("api/login/", views.login_view),
-    path("cadastro_questao/", views.cadastro_questao, name="cadastro_questao"),
-    path('buscar-conteudos/', views.buscar_conteudos_filho, name="buscar_conteudos"),
-    path('questoes/', views.list_questoes, name='list_questoes'),
-    path('questoes/<int:pk>/', views.questao_detail, name='questao_detail'),
+    path('cadastro_questao/', views.cadastro_questao, name='cadastro_questao'),
+   
+    re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
