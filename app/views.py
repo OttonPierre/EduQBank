@@ -13,6 +13,19 @@ from rest_framework import viewsets
 from rest_framework import generics
 from .models import Questao
 from .serializers import QuestaoSerializer  
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.core.files.storage import default_storage
+
+@csrf_exempt
+def upload_image(request):
+    if request.method == 'POST' and request.FILES.get('upload'):
+        image = request.FILES['upload']
+        path = default_storage.save(f"uploads/{image.name}", image)
+        url = default_storage.url(path)
+        return JsonResponse({'url': url})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 @api_view(["POST"])
@@ -48,23 +61,20 @@ def login_view(request):
 
 def cadastro_questao(request):
     if request.method == 'POST':
-        data = request.POST.copy()
-        for campo in ['unidade', 'topico', 'subtopico', 'categoria']:
-            if not data.get(campo):
-                data[campo] = None
-
-        form = QuestaoForm(request.POST)
+        form = QuestaoForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             messages.success(request, "Questão cadastrada com sucesso!")
             return redirect('cadastro_questao')
         else:
             messages.error(request, "Erro ao cadastrar questão.")
-    else:   
+    else:
         form = QuestaoForm()
-        
+
     areas = Conteudo.objects.filter(tipo='area')
-    return render(request, 'app/cadastro_questao.html', {'form':form, 'areas': areas})
+    return render(request, 'app/cadastro_questao.html', {'form': form, 'areas': areas})
+
+
 
 def buscar_conteudos_filho(request):
     pai_id = request.GET.get('pai_id')

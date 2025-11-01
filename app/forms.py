@@ -1,5 +1,5 @@
-from django import forms 
-from .models import Questao, Conteudo
+from django import forms
+from .models import Questao
 
 class QuestaoForm(forms.ModelForm):
     class Meta:

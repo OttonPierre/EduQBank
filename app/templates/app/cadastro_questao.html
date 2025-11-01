@@ -5,9 +5,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cadastrar Questão</title>
+  
   <link rel="stylesheet" href="{% static 'app/css/bootstrap.min.css' %}" />
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="{% static 'app/js/bootstrap.min.js' %}"></script>
+
+  {{ form.media }}
 
   <style>
     body {
@@ -20,6 +21,7 @@
       padding: 30px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       margin-top: 50px;
+      margin-bottom: 50px; /* Adicionado espaço inferior */
     }
 
     .form-title {
@@ -31,13 +33,20 @@
     .form-label {
       font-weight: 500;
     }
+
+    /* Estilo opcional, mas recomendado:
+      Define uma altura mínima para os editores CKEditor 5.
+    */
+    .ck-editor__editable_inline {
+        min-height: 250px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-md-10 col-lg-8">
       <div class="form-container">
         <div class="form-title">Cadastrar Nova Questão</div>
 
@@ -50,10 +59,12 @@
           {% endfor %}
         {% endif %}
 
-        <form method="post" action="">
+        <form method="post" enctype="multipart/form-data" action="">
           {% csrf_token %}
 
-          <!-- Área -->
+          <h5 class="text-primary">Classificação</h5>
+          <hr class="mt-2 mb-3">
+
           <div class="mb-3">
             <label for="area" class="form-label">Área</label>
             <select name="area" id="area" class="form-select" required>
@@ -64,37 +75,36 @@
             </select>
           </div>
 
-          <!-- Unidade -->
           <div class="mb-3">
             <label for="unidade" class="form-label">Unidade</label>
             <select name="unidade" id="unidade" class="form-select" disabled>
-              <option value="">Selecione</option>
+              <option value="">Selecione primeiro a Área</option>
             </select>
           </div>
 
-          <!-- Tópico -->
           <div class="mb-3">
             <label for="topico" class="form-label">Tópico</label>
             <select name="topico" id="topico" class="form-select" disabled>
-              <option value="">Selecione</option>
+              <option value="">Selecione primeiro a Unidade</option>
             </select>
           </div>
 
-          <!-- Subtópico -->
           <div class="mb-3">
             <label for="subtopico" class="form-label">Subtópico</label>
             <select name="subtopico" id="subtopico" class="form-select" disabled>
-              <option value="">Selecione</option>
+              <option value="">Selecione primeiro o Tópico</option>
             </select>
           </div>
 
-          <!-- Categoria -->
           <div class="mb-3">
             <label for="categoria" class="form-label">Categoria</label>
             <select name="categoria" id="categoria" class="form-select" disabled>
-              <option value="">Selecione</option>
+              <option value="">Selecione primeiro o Subtópico</option>
             </select>
           </div>
+
+          <h5 class="text-primary mt-4">Informações Adicionais</h5>
+          <hr class="mt-2 mb-3">
 
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -140,53 +150,91 @@
             </div>
           </div>
 
-          <!-- Enunciado -->
+          <h5 class="text-primary mt-4">Conteúdo da Questão</h5>
+          <hr class="mt-2 mb-3">
+
           <div class="mb-4">
-            <label for="enunciado" class="form-label">Enunciado</label>
-            <textarea name="enunciado" id="enunciado" rows="5" class="form-control" required></textarea>
+            <label for="{{ form.enunciado.id_for_label }}" class="form-label">Enunciado</label>
+            {{ form.enunciado }}
           </div>
 
-          <button type="submit" class="btn btn-primary w-100">Cadastrar Questão</button>
+          <div class="mb-4">
+            <label for="{{ form.resposta.id_for_label }}" class="form-label">Resposta</label>
+            {{ form.resposta }}
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 btn-lg mt-4">Cadastrar Questão</button>
         </form>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="{% static 'app/js/bootstrap.bundle.min.js' %}"></script>
+
 <script>
-  function carregarFilhos(pai_id, seletor_filho) {
-    if (!pai_id) {
-      $(seletor_filho).html('<option value="">Selecione</option>').prop('disabled', true);
-      return;
+  // Executa o script apenas quando o DOM estiver pronto
+  $(function() {
+    
+    // Armazena a URL em uma constante
+    const BUSCAR_CONTEUDOS_URL = "{% url 'buscar_conteudos' %}";
+
+    function carregarFilhos(pai_id, seletor_filho) {
+      const $seletorFilho = $(seletor_filho); // Cache do seletor jQuery
+
+      // Limpa e desabilita o seletor filho
+      let placeholder = '<option value="">Selecione</option>';
+      if (!pai_id) {
+        $seletorFilho.html(placeholder).prop('disabled', true);
+        return;
+      }
+      
+      // Atualiza o placeholder enquanto carrega
+      $seletorFilho.html('<option value="">Carregando...</option>').prop('disabled', true);
+
+      // Requisição AJAX
+      $.get(BUSCAR_CONTEUDOS_URL, { pai_id: pai_id }, function(data) {
+        let options = '<option value="">Selecione</option>';
+        
+        // Verifica se 'data' é um array antes de usar forEach
+        if (Array.isArray(data)) {
+          data.forEach(function(item) {
+            options += `<option value="${item.id}">${item.nome}</option>`;
+          });
+        }
+        
+        $seletorFilho.html(options).prop('disabled', false);
+      })
+      .fail(function() {
+        // Adiciona tratamento de erro
+        console.error("Falha ao carregar dados para: " + seletor_filho);
+        $seletorFilho.html('<option value="">Erro ao carregar</option>').prop('disabled', true);
+      });
     }
 
-    $.get("{% url 'buscar_conteudos' %}", { pai_id: pai_id }, function(data) {
-      let options = '<option value="">Selecione</option>';
-      data.forEach(function(item) {
-        options += `<option value="${item.id}">${item.nome}</option>`;
-      });
+    // --- Event Listeners ---
 
-      $(seletor_filho).html(options).prop('disabled', false);
+    $('#area').on('change', function() {
+      carregarFilhos(this.value, '#unidade');
+      // Reseta todos os campos filhos
+      $('#topico, #subtopico, #categoria').html('<option value="">Selecione</oção>').prop('disabled', true);
     });
-  }
 
-  $('#area').on('change', function() {
-    carregarFilhos(this.value, '#unidade');
-    $('#topico, #subtopico, #categoria').html('<option value="">Selecione</option>').prop('disabled', true);
-  });
+    $('#unidade').on('change', function() {
+      carregarFilhos(this.value, '#topico');
+      $('#subtopico, #categoria').html('<option value="">Selecione</option>').prop('disabled', true);
+    });
 
-  $('#unidade').on('change', function() {
-    carregarFilhos(this.value, '#topico');
-    $('#subtopico, #categoria').html('<option value="">Selecione</option>').prop('disabled', true);
-  });
+    $('#topico').on('change', function() {
+      carregarFilhos(this.value, '#subtopico');
+      $('#categoria').html('<option value="">Selecione</option>').prop('disabled', true);
+    });
 
-  $('#topico').on('change', function() {
-    carregarFilhos(this.value, '#subtopico');
-    $('#categoria').html('<option value="">Selecione</option>').prop('disabled', true);
-  });
-
-  $('#subtopico').on('change', function() {
-    carregarFilhos(this.value, '#categoria');
+    $('#subtopico').on('change', function() {
+      carregarFilhos(this.value, '#categoria');
+    });
   });
 </script>
 
