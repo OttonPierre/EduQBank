@@ -23,9 +23,11 @@ from app import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('app.urls')),  # TODAS as APIs aqui
+    path('api/', include('app.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('cadastro_questao/', views.cadastro_questao, name='cadastro_questao'),
-   
-    re_path(r'^.*', TemplateView.as_view(template_name='index.html')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns.append(
+    re_path(r'^.*', TemplateView.as_view(template_name='index.html'))
+)
