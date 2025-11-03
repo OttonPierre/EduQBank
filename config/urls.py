@@ -24,7 +24,7 @@ from app import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('app.urls')),
-    path('ckeditor5/', include('django_ckeditor_5.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
     path('cadastro_questao/', views.cadastro_questao, name='cadastro_questao'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

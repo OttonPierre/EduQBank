@@ -1,5 +1,5 @@
 from django.db import models
-from django_ckeditor_5.fields import CKEditor5Field
+from ckeditor_uploader.fields import RichTextUploadingField
 
 class Conteudo(models.Model):
     nome = models.CharField(max_length=100)
@@ -30,6 +30,6 @@ class Questao(models.Model):
     banca = models.CharField(max_length=100)
     tipo_questao = models.CharField(max_length=50)
     dificuldade = models.CharField(max_length=20)
-    enunciado = CKEditor5Field('Enunciado', config_name='default')
-    resposta = CKEditor5Field('Resposta', config_name='default')
+    enunciado = RichTextUploadingField('Enunciado')
+    resposta = RichTextUploadingField('Resposta')
 

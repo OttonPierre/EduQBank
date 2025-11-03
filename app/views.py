@@ -35,9 +35,215 @@ from datetime import datetime
 import io
 import os
 import urllib.parse
-import requests
 from PIL import Image as PILImage
+from matplotlib import mathtext
+from matplotlib import font_manager
+import base64
+from .utils import render_latex_to_png_bytes, split_text_and_math, html_render_math_to_img
 
+## moved to utils.py
+
+def _extract_text_from_html(html: str) -> str:
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, 'lxml')
+    # Replace <br> with newlines
+    for br in soup.find_all("br"):
+        br.replace_with("\n")
+    text = soup.get_text("\n")
+    return text.strip()
+
+def _docx_add_if_header(document: Document, title: str = "PROVA", subtitle: str = "") -> None:
+    section = document.sections[0]
+    header = section.header
+    header_para = header.paragraphs[0]
+    run = header_para.add_run("INSTITUTO FEDERAL – Sistema de Avaliação\n")
+    run.font.size = Pt(10)
+    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p = document.add_paragraph()
+    r = p.add_run(title)
+    r.font.size = Pt(16)
+    r.bold = True
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if subtitle:
+        p2 = document.add_paragraph(subtitle)
+        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    info = document.add_paragraph("Professor(a): __________________    Turma: ______    Data: ____/____/______    Nota: ______")
+    info.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    document.add_paragraph("Aluno(a): _________________________________________________________________")
+    document.add_paragraph("")
+
+def _pdf_if_header(canvas, doc_title: str = "PROVA", subtitle: str = ""):
+    width, height = A4
+    canvas.setFont("Helvetica-Bold", 10)
+    canvas.drawCentredString(width/2, height - 40, "INSTITUTO FEDERAL – Sistema de Avaliação")
+    canvas.setFont("Helvetica-Bold", 16)
+    canvas.drawCentredString(width/2, height - 70, doc_title)
+    if subtitle:
+        canvas.setFont("Helvetica", 12)
+        canvas.drawCentredString(width/2, height - 88, subtitle)
+    canvas.setFont("Helvetica", 10)
+    canvas.drawString(40, height - 120, "Professor(a): __________________    Turma: ______    Data: ____/____/______    Nota: ______")
+    canvas.drawString(40, height - 140, "Aluno(a): _________________________________________________________________")
+
+def _build_exam_html(questions):
+    # Minimal HTML with IF header and MathJax
+    head = """
+    <head>
+      <meta charset='utf-8'/>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1, h2 { text-align: center; margin: 0; }
+        .meta { margin-top: 16px; font-size: 12px; }
+        .question { margin-top: 18px; }
+        .answer { margin-top: 8px; color: #333; }
+        img { max-width: 100%; }
+      </style>
+      <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\(', '\\\)']], displayMath: [['$$','$$'], ['\\\[','\\\]']] } };
+      </script>
+      <script src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js'></script>
+    </head>
+    """
+    body_parts = [
+        "<h2>INSTITUTO FEDERAL – Sistema de Avaliação</h2>",
+        "<h1>PROVA</h1>",
+        "<div class='meta'>Professor(a): __________________ &nbsp;&nbsp; Turma: ______ &nbsp;&nbsp; Data: ____/____/______ &nbsp;&nbsp; Nota: ______</div>",
+        "<div class='meta'>Aluno(a): _________________________________________________________________</div>",
+    ]
+    for idx, q in enumerate(questions, start=1):
+        body_parts.append(f"<div class='question'><strong>Questão {idx}</strong></div>")
+        body_parts.append(f"<div class='question-content'>{q.enunciado or ''}</div>")
+        if getattr(q, 'resposta', None):
+            body_parts.append("<div class='answer'><em>Resposta:</em></div>")
+            body_parts.append(f"<div class='answer-content'>{q.resposta or ''}</div>")
+    html = f"<html>{head}<body>{''.join(body_parts)}</body></html>"
+    return html
+
+    # Legacy helper retained (no longer used)
+
+def _build_questions_flow(questions):
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle(name='Normal', parent=styles['Normal'], fontName='Helvetica', fontSize=11, leading=14, alignment=TA_JUSTIFY)
+    title_style = ParagraphStyle(name='QTitle', parent=styles['Heading4'], spaceAfter=6)
+    flow = []
+    for idx, q in enumerate(questions, start=1):
+        flow.append(Paragraph(f"Questão {idx}", title_style))
+        html = html_render_math_to_img(q.enunciado or "")
+        soup = BeautifulSoup(html, 'lxml')
+        accum_text = []
+        for element in soup.recursiveChildGenerator():
+            if getattr(element, 'name', None) == 'img' and element.get('src','').startswith('data:image/png;base64,'):
+                if accum_text:
+                    flow.append(Paragraph(''.join(accum_text).replace('\n','<br/>'), normal))
+                    accum_text = []
+                b64 = element['src'].split(',',1)[1]
+                img_bytes = base64.b64decode(b64)
+                flow.append(ReportLabImage(io.BytesIO(img_bytes), width=200, height=0, kind='proportional'))
+            elif isinstance(element, str):
+                text = element
+                if text:
+                    accum_text.append(text)
+        if accum_text:
+            flow.append(Paragraph(''.join(accum_text).replace('\n','<br/>'), normal))
+        flow.append(Spacer(1, 10))
+    return flow
+
+@api_view(["POST"]) 
+def generate_test_docx(request):
+    ids = request.data.get('question_ids', [])
+    if not isinstance(ids, list) or not ids:
+        return Response({"detail": "question_ids deve ser uma lista não vazia"}, status=400)
+    questions = list(Questao.objects.filter(id__in=ids))
+    if not questions:
+        return Response({"detail": "Nenhuma questão encontrada"}, status=404)
+    document = Document()
+    _docx_add_if_header(document, "PROVA", "Banco de Questões")
+    for idx, q in enumerate(questions, start=1):
+        document.add_paragraph(f"Questão {idx}")
+        html = html_render_math_to_img(q.enunciado or "")
+        soup = BeautifulSoup(html, 'lxml')
+        accum_text = []
+        for element in soup.recursiveChildGenerator():
+            if getattr(element, 'name', None) == 'img' and element.get('src','').startswith('data:image/png;base64,'):
+                if accum_text:
+                    document.add_paragraph(''.join(accum_text))
+                    accum_text = []
+                b64 = element['src'].split(',',1)[1]
+                img_bytes = base64.b64decode(b64)
+                stream = io.BytesIO(img_bytes)
+                document.add_picture(stream)
+            elif isinstance(element, str):
+                accum_text.append(element)
+        if accum_text:
+            document.add_paragraph(''.join(accum_text))
+        if getattr(q, 'resposta', None):
+            document.add_paragraph("Resposta:")
+            html_r = html_render_math_to_img(q.resposta or "")
+            soup_r = BeautifulSoup(html_r, 'lxml')
+            accum_text_r = []
+            for element in soup_r.recursiveChildGenerator():
+                if getattr(element, 'name', None) == 'img' and element.get('src','').startswith('data:image/png;base64,'):
+                    if accum_text_r:
+                        document.add_paragraph(''.join(accum_text_r))
+                        accum_text_r = []
+                    b64 = element['src'].split(',',1)[1]
+                    img_bytes = base64.b64decode(b64)
+                    stream = io.BytesIO(img_bytes)
+                    document.add_picture(stream)
+                elif isinstance(element, str):
+                    accum_text_r.append(element)
+            if accum_text_r:
+                document.add_paragraph(''.join(accum_text_r))
+        document.add_paragraph("")
+    buffer = io.BytesIO()
+    document.save(buffer)
+    buffer.seek(0)
+    resp = HttpResponse(buffer.getvalue(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    resp["Content-Disposition"] = f'attachment; filename="prova_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+    return resp
+
+@api_view(["POST"]) 
+def generate_test_pdf(request):
+    ids = request.data.get('question_ids', [])
+    if not isinstance(ids, list) or not ids:
+        return Response({"detail": "question_ids deve ser uma lista não vazia"}, status=400)
+    questions = list(Questao.objects.filter(id__in=ids))
+    if not questions:
+        return Response({"detail": "Nenhuma questão encontrada"}, status=404)
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=40, rightMargin=40, topMargin=160, bottomMargin=40)
+    flow = _build_questions_flow(questions)
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle(name='Normal', parent=styles['Normal'], fontName='Helvetica', fontSize=11, leading=14, alignment=TA_JUSTIFY)
+    title_style = ParagraphStyle(name='QTitle', parent=styles['Heading4'], spaceAfter=6)
+    for idx, q in enumerate(questions, start=1):
+        if getattr(q, 'resposta', None):
+            flow.append(Paragraph(f"Resposta da Questão {idx}", title_style))
+            html = html_render_math_to_img(q.resposta or "")
+            soup = BeautifulSoup(html, 'lxml')
+            accum_text = []
+            for element in soup.recursiveChildGenerator():
+                if getattr(element, 'name', None) == 'img' and element.get('src','').startswith('data:image/png;base64,'):
+                    if accum_text:
+                        flow.append(Paragraph(''.join(accum_text).replace('\n','<br/>'), normal))
+                        accum_text = []
+                    b64 = element['src'].split(',',1)[1]
+                    img_bytes = base64.b64decode(b64)
+                    flow.append(ReportLabImage(io.BytesIO(img_bytes), width=200, height=0, kind='proportional'))
+                elif isinstance(element, str):
+                    accum_text.append(element)
+            if accum_text:
+                flow.append(Paragraph(''.join(accum_text).replace('\n','<br/>'), normal))
+            flow.append(Spacer(1, 10))
+    def on_first_page(canvas, doc):
+        _pdf_if_header(canvas, "PROVA", "Banco de Questões")
+    doc.build(flow, onFirstPage=on_first_page, onLaterPages=on_first_page)
+    pdf_value = buffer.getvalue()
+    buffer.close()
+    resp = HttpResponse(pdf_value, content_type='application/pdf')
+    resp["Content-Disposition"] = f'attachment; filename="prova_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+    return resp
 @csrf_exempt
 def upload_image(request):
     if request.method == 'POST' and request.FILES.get('upload'):
