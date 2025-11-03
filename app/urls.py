@@ -10,5 +10,7 @@ urlpatterns = [
     path('auth/login/', views.login_view, name='login'),
     path('upload-image/', views.upload_image, name='upload_image'),
     path('buscar-conteudos/', views.buscar_conteudos_filho, name='buscar_conteudos'),
+    path('conteudos/', views.list_conteudos, name='list_conteudos'),
+    path('unique-values/', views.get_unique_values, name='get_unique_values'),
     path('', include(router.urls)),
 ]
