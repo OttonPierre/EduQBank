@@ -150,17 +150,30 @@ CKEDITOR_IMAGE_BACKEND = "pillow"
 CKEDITOR_ALLOW_NONIMAGE_FILES = True
 CKEDITOR_CONFIGS = {
     'default': {
-        'toolbar': 'full',
+        'toolbar': [
+            {'name': 'clipboard', 'items': ['Undo', 'Redo']},
+            {'name': 'styles', 'items': ['Styles', 'Format', 'Font', 'FontSize']},
+            {'name': 'basicstyles', 'items': ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', 'RemoveFormat']},
+            {'name': 'paragraph', 'items': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock']},
+            {'name': 'links', 'items': ['Link', 'Unlink']},
+            {'name': 'insert', 'items': ['Image', 'UploadImage', 'Table', 'HorizontalRule', 'SpecialChar', 'Mathjax', 'Embed']},
+            {'name': 'tools', 'items': ['Maximize', 'Source']},
+        ],
         'height': 300,
         'width': '100%',
         'extraPlugins': ','.join([
             'mathjax',
+            'image2',
             'uploadimage',
+            'embed',
             'justify',
             'autogrow',
         ]),
-        'mathJaxLib': 'https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS_HTML',
-        'removePlugins': 'image',
+        # Configuração do MathJax otimizada para fórmulas matemáticas e químicas
+        # Usando MathJax 2.7.9 com suporte a mhchem para fórmulas químicas
+        'mathJaxLib': 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS_HTML',
+        'mathJaxClass': 'math-tex',
+        'removePlugins': 'easyimage,cloudservices',
         'filebrowserUploadUrl': '/ckeditor/upload/',
         'filebrowserBrowseUrl': '/ckeditor/browse/',
         'language': 'pt-br',

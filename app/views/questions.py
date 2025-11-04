@@ -1,0 +1,125 @@
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import viewsets, generics
+from app.models import Questao, Conteudo
+from app.forms import QuestaoForm
+from app.serializers import QuestaoSerializer
+
+
+class QuestaoList(generics.ListAPIView):
+    queryset = Questao.objects.all()
+    serializer_class = QuestaoSerializer
+
+
+class QuestaoDetail(generics.RetrieveAPIView):
+    queryset = Questao.objects.all()
+    serializer_class = QuestaoSerializer
+
+
+class QuestaoViewSet(viewsets.ModelViewSet):
+    queryset = Questao.objects.all()
+    serializer_class = QuestaoSerializer
+    
+    def get_queryset(self):
+        queryset = Questao.objects.all()
+        
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(enunciado__icontains=search)
+        
+        area_id = self.request.query_params.get('area_id', None)
+        if area_id:
+            try:
+                queryset = queryset.filter(area_id=int(area_id))
+            except ValueError:
+                pass
+        
+        unidade_id = self.request.query_params.get('unidade_id', None)
+        if unidade_id:
+            try:
+                queryset = queryset.filter(unidade_id=int(unidade_id))
+            except ValueError:
+                pass
+        
+        topico_id = self.request.query_params.get('topico_id', None)
+        if topico_id:
+            try:
+                queryset = queryset.filter(topico_id=int(topico_id))
+            except ValueError:
+                pass
+        
+        subtopico_id = self.request.query_params.get('subtopico_id', None)
+        if subtopico_id:
+            try:
+                queryset = queryset.filter(subtopico_id=int(subtopico_id))
+            except ValueError:
+                pass
+        
+        categoria_id = self.request.query_params.get('categoria_id', None)
+        if categoria_id:
+            try:
+                queryset = queryset.filter(categoria_id=int(categoria_id))
+            except ValueError:
+                pass
+        
+        ano = self.request.query_params.get('ano', None)
+        if ano:
+            try:
+                ano_int = int(ano)
+                queryset = queryset.filter(ano=ano_int)
+            except ValueError:
+                pass
+        
+        banca = self.request.query_params.get('banca', None)
+        if banca:
+            queryset = queryset.filter(banca__icontains=banca)
+        
+        tipo_questao = self.request.query_params.get('tipo_questao', None)
+        if tipo_questao:
+            queryset = queryset.filter(tipo_questao__icontains=tipo_questao)
+        
+        dificuldade = self.request.query_params.get('dificuldade', None)
+        if dificuldade:
+            queryset = queryset.filter(dificuldade__icontains=dificuldade)
+        
+        return queryset
+
+
+@api_view(["GET"])
+def list_questoes(request):
+    questions = Questao.objects.all()
+    serializer = QuestaoSerializer(questions, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def questao_detail(request, pk):
+    try:
+        question = Questao.objects.get(pk=pk)
+    except Questao.DoesNotExist:
+        return Response({"detail": "Questão não encontrada"}, status=404)
+    serializer = QuestaoSerializer(question)
+    return Response(serializer.data)
+
+
+def cadastro_questao(request):
+    if request.method == 'POST':
+        form = QuestaoForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Questão cadastrada com sucesso!")
+            return redirect('cadastro_questao')
+        else:
+            messages.error(request, "Erro ao cadastrar questão.")
+    else:
+        form = QuestaoForm()
+
+    areas = Conteudo.objects.filter(tipo='area')
+    return render(request, 'app/cadastro_questao.html', {'form': form, 'areas': areas})
+
+
+def inicio(request):
+    return render(request, 'app/inicio.html')
+

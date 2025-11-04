@@ -12,7 +12,6 @@ urlpatterns = [
     path('buscar-conteudos/', views.buscar_conteudos_filho, name='buscar_conteudos'),
     path('conteudos/', views.list_conteudos, name='list_conteudos'),
     path('unique-values/', views.get_unique_values, name='get_unique_values'),
-    path('generate-test/pdf/', views.generate_test_pdf, name='generate_test_pdf'),
     path('generate-test/docx/', views.generate_test_docx, name='generate_test_docx'),
     path('', include(router.urls)),
 ]
