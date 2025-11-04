@@ -136,6 +136,7 @@ def _generate_with_pypandoc(questions, out_format: str) -> bytes | None:
             "<meta charset='utf-8'/>"
             "<style>body{font-family: Arial, sans-serif;margin:40px;} img{max-width:100%;}</style>"
         )
+        # Primeira página: apenas enunciados
         body_parts = [
             "<h2 style='text-align:center'>INSTITUTO FEDERAL – Sistema de Avaliação</h2>",
             "<h1 style='text-align:center'>PROVA</h1>",
@@ -147,8 +148,12 @@ def _generate_with_pypandoc(questions, out_format: str) -> bytes | None:
             # Converter fórmulas do CKEditor para LaTeX que Pandoc entende
             enunciado = _convert_ckeditor_math_to_latex(q.enunciado or '')
             body_parts.append(f"<div>{enunciado}</div>")
+
+        body_parts.append("<h1 style='text-align:center; page-break-before: always;'>GABARITO</h1>")
+        
+        for idx, q in enumerate(questions, start=1):
             if getattr(q, 'resposta', None):
-                body_parts.append("<h4>Resposta</h4>")
+                body_parts.append(f"<h3>Questão {idx}</h3>")
                 resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
                 body_parts.append(f"<div>{resposta}</div>")
         html = f"<html><head>{head}</head><body>{''.join(body_parts)}</body></html>"
@@ -176,6 +181,7 @@ def _generate_with_pandoc(questions, out_format: str) -> bytes | None:
             "<meta charset='utf-8'/>"
             "<style>body{font-family: Arial, sans-serif;margin:40px;} img{max-width:100%;}</style>"
         )
+        # Primeira página: apenas enunciados
         body_parts = [
             "<h2 style='text-align:center'>INSTITUTO FEDERAL – Sistema de Avaliação</h2>",
             "<h1 style='text-align:center'>PROVA</h1>",
@@ -187,8 +193,17 @@ def _generate_with_pandoc(questions, out_format: str) -> bytes | None:
             # Converter fórmulas do CKEditor para LaTeX que Pandoc entende
             enunciado = _convert_ckeditor_math_to_latex(q.enunciado or '')
             body_parts.append(f"<div>{enunciado}</div>")
+        
+        # Segunda página: apenas respostas (Gabarito)
+        body_parts.append("<p style='page-break-before: always;'></p>")
+        body_parts.append("<h2 style='text-align:center'>INSTITUTO FEDERAL – Sistema de Avaliação</h2>")
+        body_parts.append("<h1 style='text-align:center'>GABARITO</h1>")
+        body_parts.append("<div>Professor(a): __________________ &nbsp;&nbsp; Turma: ______ &nbsp;&nbsp; Data: ____/____/______ &nbsp;&nbsp; Nota: ______</div>")
+        body_parts.append("<div>Aluno(a): _________________________________________________________________</div>")
+        
+        for idx, q in enumerate(questions, start=1):
             if getattr(q, 'resposta', None):
-                body_parts.append("<h4>Resposta</h4>")
+                body_parts.append(f"<h3>Questão {idx}</h3>")
                 resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
                 body_parts.append(f"<div>{resposta}</div>")
         html = f"<html><head>{head}</head><body>{''.join(body_parts)}</body></html>"

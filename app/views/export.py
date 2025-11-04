@@ -41,6 +41,8 @@ def generate_test_docx(request):
     # Fallback to python-docx
     document = Document()
     _docx_add_if_header(document, "PROVA", "Banco de Questões")
+    
+    # Primeira página: apenas enunciados
     for idx, q in enumerate(questions, start=1):
         document.add_paragraph(f"Questão {idx}")
         html = html_render_math_to_img(q.enunciado or "")
@@ -60,8 +62,16 @@ def generate_test_docx(request):
                 accum_text.append(element)
         if accum_text:
             document.add_paragraph(''.join(accum_text))
+        document.add_paragraph("")
+    
+    # Quebra de página para o gabarito
+    document.add_page_break()
+    
+    # Segunda página: apenas respostas (Gabarito)
+    _docx_add_if_header(document, "GABARITO", "Banco de Questões")
+    for idx, q in enumerate(questions, start=1):
         if getattr(q, 'resposta', None):
-            document.add_paragraph("Resposta:")
+            document.add_paragraph(f"Questão {idx}")
             html_r = html_render_math_to_img(q.resposta or "")
             soup_r = BeautifulSoup(html_r, 'lxml')
             accum_text_r = []
@@ -79,7 +89,7 @@ def generate_test_docx(request):
                     accum_text_r.append(element)
             if accum_text_r:
                 document.add_paragraph(''.join(accum_text_r))
-        document.add_paragraph("")
+            document.add_paragraph("")
     
     buffer = io.BytesIO()
     document.save(buffer)
