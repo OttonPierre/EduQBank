@@ -2,6 +2,7 @@ import os
 import base64
 import tempfile
 import subprocess
+from typing import Optional
 from bs4 import BeautifulSoup
 from django.conf import settings
 from urllib.parse import urlparse
@@ -127,7 +128,7 @@ def _rewrite_img_src_to_fs_paths(html: str) -> str:
     return str(soup)
 
 
-def _generate_with_pypandoc(questions, out_format: str) -> bytes | None:
+def _generate_with_pypandoc(questions, out_format: str) -> Optional[bytes]:
     """Use pypandoc to convert HTML (with LaTeX) to PDF/DOCX using installed Pandoc and MiKTeX. Returns bytes or None."""
     if pypandoc is None:
         return None
@@ -174,7 +175,7 @@ def _generate_with_pypandoc(questions, out_format: str) -> bytes | None:
         return None
 
 
-def _generate_with_pandoc(questions, out_format: str) -> bytes | None:
+def _generate_with_pandoc(questions, out_format: str) -> Optional[bytes]:
     """Try to use pandoc (and MiKTeX/LaTeX engine) to produce PDF/DOCX with real formulas. Returns bytes or None on failure."""
     try:
         head = (
@@ -249,7 +250,7 @@ def _docx_add_if_header(document: Document, title: str = "PROVA", subtitle: str 
     document.add_paragraph("")
 
 
-def _get_image_bytes_from_html(src: str) -> bytes | None:
+def _get_image_bytes_from_html(src: str) -> Optional[bytes]:
     """Extract image bytes from HTML src attribute (supports data URIs, local media, and URLs)."""
     if src.startswith('data:image') and 'base64,' in src:
         b64 = src.split(',',1)[1]
