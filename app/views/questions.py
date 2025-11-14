@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from rest_framework.decorators import api_view
+from django.contrib.auth.decorators import login_required, user_passes_test
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import viewsets, generics
 from app.models import Questao, Conteudo
@@ -22,7 +24,16 @@ class QuestaoViewSet(viewsets.ModelViewSet):
     queryset = Questao.objects.all()
     serializer_class = QuestaoSerializer
     
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        All actions require authentication.
+        """
+        permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
     def get_queryset(self):
+        from django.db.models import Q
         queryset = Questao.objects.all()
         
         search = self.request.query_params.get('search', None)
@@ -84,6 +95,23 @@ class QuestaoViewSet(viewsets.ModelViewSet):
         if dificuldade:
             queryset = queryset.filter(dificuldade__icontains=dificuldade)
         
+        grau_escolaridade = self.request.query_params.get('grau_escolaridade', None)
+        if grau_escolaridade:
+            queryset = queryset.filter(grau_escolaridade=grau_escolaridade)
+        
+        tem_imagem = self.request.query_params.get('tem_imagem', None)
+        if tem_imagem is not None:
+            if tem_imagem.lower() == 'true':
+                # Questões que têm imagem no enunciado ou resposta
+                queryset = queryset.filter(
+                    Q(enunciado__icontains='<img') | Q(resposta__icontains='<img')
+                )
+            elif tem_imagem.lower() == 'false':
+                # Questões que não têm imagem
+                queryset = queryset.exclude(
+                    Q(enunciado__icontains='<img') | Q(resposta__icontains='<img')
+                )
+        
         return queryset
 
 
@@ -104,6 +132,10 @@ def questao_detail(request, pk):
     return Response(serializer.data)
 
 
+def is_staff(user):
+    return user.is_authenticated and user.is_staff
+
+@user_passes_test(is_staff, login_url='/api/auth/login/')
 def cadastro_questao(request):
     if request.method == 'POST':
         form = QuestaoForm(request.POST, request.FILES)

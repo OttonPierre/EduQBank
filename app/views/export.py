@@ -16,8 +16,11 @@ from .helpers import (
 
 
 @api_view(["POST"]) 
-def generate_test_docx(request):
+def print_test_docx(request):
     ids = request.data.get('question_ids', [])
+    include_gabarito = request.data.get('include_gabarito', True)
+    use_resposta_gabarito = request.data.get('use_resposta_gabarito', False)
+    
     if not isinstance(ids, list) or not ids:
         return Response({"detail": "question_ids deve ser uma lista não vazia"}, status=400)
     questions = list(Questao.objects.filter(id__in=ids))
@@ -25,17 +28,19 @@ def generate_test_docx(request):
         return Response({"detail": "Nenhuma questão encontrada"}, status=404)
     
     # Try pypandoc first (preferred)
-    pp_bytes = _generate_with_pypandoc(questions, 'docx')
+    pp_bytes = _generate_with_pypandoc(questions, 'docx', include_gabarito, use_resposta_gabarito)
     if pp_bytes:
         resp = HttpResponse(pp_bytes, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        resp["Content-Disposition"] = f'attachment; filename="prova_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+        filename = "prova" if not include_gabarito else "prova_com_gabarito"
+        resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
         return resp
     
     # Fallback to pandoc CLI
-    pandoc_bytes = _generate_with_pandoc(questions, 'docx')
+    pandoc_bytes = _generate_with_pandoc(questions, 'docx', include_gabarito, use_resposta_gabarito)
     if pandoc_bytes:
         resp = HttpResponse(pandoc_bytes, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        resp["Content-Disposition"] = f'attachment; filename="prova_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+        filename = "prova" if not include_gabarito else "prova_com_gabarito"
+        resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
         return resp
 
     # Fallback to python-docx
@@ -64,37 +69,59 @@ def generate_test_docx(request):
             document.add_paragraph(''.join(accum_text))
         document.add_paragraph("")
     
-    # Quebra de página para o gabarito
-    document.add_page_break()
-    
-    # Segunda página: apenas respostas (Gabarito)
-    _docx_add_if_header(document, "GABARITO", "Banco de Questões")
-    for idx, q in enumerate(questions, start=1):
-        if getattr(q, 'resposta', None):
+    # Segunda página: gabarito (se solicitado)
+    if include_gabarito:
+        document.add_page_break()
+        _docx_add_if_header(document, "GABARITO", "Banco de Questões")
+        for idx, q in enumerate(questions, start=1):
             document.add_paragraph(f"Questão {idx}")
-            html_r = html_render_math_to_img(q.resposta or "")
-            soup_r = BeautifulSoup(html_r, 'lxml')
-            accum_text_r = []
-            for element in soup_r.recursiveChildGenerator():
-                if getattr(element, 'name', None) == 'img':
-                    src = element.get('src','')
-                    if accum_text_r:
-                        document.add_paragraph(''.join(accum_text_r))
-                        accum_text_r = []
-                    img_bytes = _get_image_bytes_from_html(src)
-                    if img_bytes:
-                        stream = io.BytesIO(img_bytes)
-                        document.add_picture(stream)
-                elif isinstance(element, str):
-                    accum_text_r.append(element)
-            if accum_text_r:
-                document.add_paragraph(''.join(accum_text_r))
+            
+            # Escolher entre resposta_gabarito ou resposta
+            if use_resposta_gabarito and getattr(q, 'resposta_gabarito', None):
+                # Usar resposta_gabarito (HTML rico)
+                html_g = html_render_math_to_img(q.resposta_gabarito or "")
+                soup_g = BeautifulSoup(html_g, 'lxml')
+                accum_text_g = []
+                for element in soup_g.recursiveChildGenerator():
+                    if getattr(element, 'name', None) == 'img':
+                        src = element.get('src','')
+                        if accum_text_g:
+                            document.add_paragraph(''.join(accum_text_g))
+                            accum_text_g = []
+                        img_bytes = _get_image_bytes_from_html(src)
+                        if img_bytes:
+                            stream = io.BytesIO(img_bytes)
+                            document.add_picture(stream)
+                    elif isinstance(element, str):
+                        accum_text_g.append(element)
+                if accum_text_g:
+                    document.add_paragraph(''.join(accum_text_g))
+            elif getattr(q, 'resposta', None):
+                # Usar resposta (HTML rico)
+                html_r = html_render_math_to_img(q.resposta or "")
+                soup_r = BeautifulSoup(html_r, 'lxml')
+                accum_text_r = []
+                for element in soup_r.recursiveChildGenerator():
+                    if getattr(element, 'name', None) == 'img':
+                        src = element.get('src','')
+                        if accum_text_r:
+                            document.add_paragraph(''.join(accum_text_r))
+                            accum_text_r = []
+                        img_bytes = _get_image_bytes_from_html(src)
+                        if img_bytes:
+                            stream = io.BytesIO(img_bytes)
+                            document.add_picture(stream)
+                    elif isinstance(element, str):
+                        accum_text_r.append(element)
+                if accum_text_r:
+                    document.add_paragraph(''.join(accum_text_r))
             document.add_paragraph("")
     
     buffer = io.BytesIO()
     document.save(buffer)
     buffer.seek(0)
+    filename = "prova" if not include_gabarito else "prova_com_gabarito"
     resp = HttpResponse(buffer.getvalue(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    resp["Content-Disposition"] = f'attachment; filename="prova_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+    resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
     return resp
 

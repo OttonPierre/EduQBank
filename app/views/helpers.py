@@ -18,7 +18,7 @@ except Exception:
 
 
 def _convert_ckeditor_math_to_latex(html: str) -> str:
-    """
+    r"""
     Converte fórmulas do CKEditor 4 (MathJax) para formato LaTeX que o Pandoc entende.
     
     O CKEditor salva fórmulas como:
@@ -128,7 +128,7 @@ def _rewrite_img_src_to_fs_paths(html: str) -> str:
     return str(soup)
 
 
-def _generate_with_pypandoc(questions, out_format: str) -> Optional[bytes]:
+def _generate_with_pypandoc(questions, out_format: str, include_gabarito: bool = True, use_resposta_gabarito: bool = False) -> Optional[bytes]:
     """Use pypandoc to convert HTML (with LaTeX) to PDF/DOCX using installed Pandoc and MiKTeX. Returns bytes or None."""
     if pypandoc is None:
         return None
@@ -150,13 +150,18 @@ def _generate_with_pypandoc(questions, out_format: str) -> Optional[bytes]:
             enunciado = _convert_ckeditor_math_to_latex(q.enunciado or '')
             body_parts.append(f"<div>{enunciado}</div>")
 
-        body_parts.append("<h1 style='text-align:center; page-break-before: always;'>GABARITO</h1>")
-        
-        for idx, q in enumerate(questions, start=1):
-            if getattr(q, 'resposta', None):
+        if include_gabarito:
+            body_parts.append("<h1 style='text-align:center; page-break-before: always;'>GABARITO</h1>")
+            
+            for idx, q in enumerate(questions, start=1):
                 body_parts.append(f"<h3>Questão {idx}</h3>")
-                resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
-                body_parts.append(f"<div>{resposta}</div>")
+                # Escolher entre resposta_gabarito ou resposta
+                if use_resposta_gabarito and getattr(q, 'resposta_gabarito', None):
+                    resposta_g = _convert_ckeditor_math_to_latex(q.resposta_gabarito or '')
+                    body_parts.append(f"<div>{resposta_g}</div>")
+                elif getattr(q, 'resposta', None):
+                    resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
+                    body_parts.append(f"<div>{resposta}</div>")
         html = f"<html><head>{head}</head><body>{''.join(body_parts)}</body></html>"
         html = _rewrite_img_src_to_fs_paths(html)
 
@@ -175,7 +180,7 @@ def _generate_with_pypandoc(questions, out_format: str) -> Optional[bytes]:
         return None
 
 
-def _generate_with_pandoc(questions, out_format: str) -> Optional[bytes]:
+def _generate_with_pandoc(questions, out_format: str, include_gabarito: bool = True, use_resposta_gabarito: bool = False) -> Optional[bytes]:
     """Try to use pandoc (and MiKTeX/LaTeX engine) to produce PDF/DOCX with real formulas. Returns bytes or None on failure."""
     try:
         head = (
@@ -195,18 +200,23 @@ def _generate_with_pandoc(questions, out_format: str) -> Optional[bytes]:
             enunciado = _convert_ckeditor_math_to_latex(q.enunciado or '')
             body_parts.append(f"<div>{enunciado}</div>")
         
-        # Segunda página: apenas respostas (Gabarito)
-        body_parts.append("<p style='page-break-before: always;'></p>")
-        body_parts.append("<h2 style='text-align:center'>INSTITUTO FEDERAL – Sistema de Avaliação</h2>")
-        body_parts.append("<h1 style='text-align:center'>GABARITO</h1>")
-        body_parts.append("<div>Professor(a): __________________ &nbsp;&nbsp; Turma: ______ &nbsp;&nbsp; Data: ____/____/______ &nbsp;&nbsp; Nota: ______</div>")
-        body_parts.append("<div>Aluno(a): _________________________________________________________________</div>")
-        
-        for idx, q in enumerate(questions, start=1):
-            if getattr(q, 'resposta', None):
+        # Segunda página: gabarito (se solicitado)
+        if include_gabarito:
+            body_parts.append("<p style='page-break-before: always;'></p>")
+            body_parts.append("<h2 style='text-align:center'>INSTITUTO FEDERAL – Sistema de Avaliação</h2>")
+            body_parts.append("<h1 style='text-align:center'>GABARITO</h1>")
+            body_parts.append("<div>Professor(a): __________________ &nbsp;&nbsp; Turma: ______ &nbsp;&nbsp; Data: ____/____/______ &nbsp;&nbsp; Nota: ______</div>")
+            body_parts.append("<div>Aluno(a): _________________________________________________________________</div>")
+            
+            for idx, q in enumerate(questions, start=1):
                 body_parts.append(f"<h3>Questão {idx}</h3>")
-                resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
-                body_parts.append(f"<div>{resposta}</div>")
+                # Escolher entre resposta_gabarito ou resposta
+                if use_resposta_gabarito and getattr(q, 'resposta_gabarito', None):
+                    resposta_g = _convert_ckeditor_math_to_latex(q.resposta_gabarito or '')
+                    body_parts.append(f"<div>{resposta_g}</div>")
+                elif getattr(q, 'resposta', None):
+                    resposta = _convert_ckeditor_math_to_latex(q.resposta or '')
+                    body_parts.append(f"<div>{resposta}</div>")
         html = f"<html><head>{head}</head><body>{''.join(body_parts)}</body></html>"
         html = _rewrite_img_src_to_fs_paths(html)
 

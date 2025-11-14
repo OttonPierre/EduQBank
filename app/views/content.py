@@ -50,6 +50,8 @@ def get_unique_values(request):
         values = Questao.objects.values_list('dificuldade', flat=True).distinct().order_by('dificuldade')
     elif field == 'ano':
         values = Questao.objects.values_list('ano', flat=True).distinct().order_by('-ano')
+    elif field == 'grau_escolaridade':
+        values = Questao.objects.values_list('grau_escolaridade', flat=True).distinct().order_by('grau_escolaridade')
     else:
         return Response({"error": "Invalid field"}, status=400)
     

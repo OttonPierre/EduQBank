@@ -1,4 +1,4 @@
-from .auth import signup, login_view
+from .auth import signup, login_view, user_info, update_user_profile
 from .questions import (
     QuestaoViewSet,
     QuestaoList,
@@ -8,13 +8,15 @@ from .questions import (
     cadastro_questao,
     inicio,
 )
-from .export import generate_test_docx
+from .export import print_test_docx
 from .content import buscar_conteudos_filho, list_conteudos, get_unique_values
 from .upload import upload_image
 
 __all__ = [
     'signup',
     'login_view',
+    'user_info',
+    'update_user_profile',
     'QuestaoViewSet',
     'QuestaoList',
     'QuestaoDetail',
@@ -22,7 +24,7 @@ __all__ = [
     'questao_detail',
     'cadastro_questao',
     'inicio',
-    'generate_test_docx',
+    'print_test_docx',
     'buscar_conteudos_filho',
     'list_conteudos',
     'get_unique_values',

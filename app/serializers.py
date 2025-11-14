@@ -39,8 +39,8 @@ class QuestaoSerializer(serializers.ModelSerializer):
         model = Questao
         fields = [
             'id', 'area', 'unidade', 'topico', 'subtopico', 'categoria',
-            'ano', 'banca', 'tipo_questao', 'dificuldade',
-            'enunciado', 'resposta',
+            'ano', 'banca', 'tipo_questao', 'dificuldade', 'grau_escolaridade',
+            'enunciado', 'resposta', 'resposta_gabarito',
             'enunciado_rendered', 'resposta_rendered',
         ]
 

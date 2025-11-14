@@ -30,6 +30,15 @@ class Questao(models.Model):
     banca = models.CharField(max_length=100)
     tipo_questao = models.CharField(max_length=50)
     dificuldade = models.CharField(max_length=20)
+    
+    GRAU_ESCOLARIDADE_CHOICES = [
+        ('fundamental', 'Ensino Fundamental'),
+        ('medio', 'Ensino Médio'),
+        ('superior', 'Ensino Superior'),
+    ]
+    grau_escolaridade = models.CharField(max_length=20, choices=GRAU_ESCOLARIDADE_CHOICES, default='medio')
+    
     enunciado = RichTextUploadingField('Enunciado')
     resposta = RichTextUploadingField('Resposta')
+    resposta_gabarito = RichTextUploadingField('Resposta do Gabarito', blank=True, null=True)
 
