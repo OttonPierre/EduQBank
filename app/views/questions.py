@@ -142,6 +142,9 @@ def authenticate_jwt_request(request):
     Autentica a requisição usando JWT token do header Authorization ou cookie.
     Retorna o usuário se autenticado, None caso contrário.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     jwt_auth = JWTAuthentication()
     token = None
     
@@ -149,36 +152,57 @@ def authenticate_jwt_request(request):
     auth_header = request.META.get('HTTP_AUTHORIZATION', '')
     if auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
+        logger.debug("Token obtido do header Authorization")
     else:
         # Tentar obter token do cookie
         token = request.COOKIES.get('jwt_token')
+        if token:
+            logger.debug("Token obtido do cookie")
+        else:
+            logger.debug(f"Cookie jwt_token não encontrado. Cookies disponíveis: {list(request.COOKIES.keys())}")
     
     if token:
         try:
             validated_token = jwt_auth.get_validated_token(token)
             user = jwt_auth.get_user(validated_token)
+            logger.debug(f"Usuário autenticado: {user.username}, is_staff: {user.is_staff}")
             return user
-        except (InvalidToken, TokenError, KeyError, IndexError):
+        except (InvalidToken, TokenError, KeyError, IndexError) as e:
+            logger.debug(f"Erro ao validar token: {e}")
             pass
     return None
 
 def cadastro_questao(request):
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Verificar autenticação via JWT primeiro (para requisições do frontend)
     user = authenticate_jwt_request(request)
+    logger.debug(f"Usuário após authenticate_jwt_request: {user}")
     
     # Se não autenticado via JWT, verificar sessão Django (para uso direto no navegador)
     if not user:
         user = request.user if request.user.is_authenticated else None
+        logger.debug(f"Usuário após verificar sessão: {user}")
     
     # Verificar se está autenticado e é staff
-    if not user or not user.is_authenticated or not user.is_staff:
-        # Redirecionar para a página inicial do frontend com mensagem
-        messages.error(request, "Você precisa estar autenticado como staff para acessar esta página.")
+    # Quando autenticado via JWT, o user existe mas pode não ter is_authenticated=True
+    # Então verificamos se user existe e é staff
+    if not user:
+        logger.debug("Nenhum usuário encontrado")
+        messages.error(request, "Você precisa estar autenticado para acessar esta página.")
         return redirect('/')
+    
+    if not user.is_staff:
+        logger.debug(f"Usuário {user.username} não é staff")
+        messages.error(request, "Você precisa ser staff para acessar esta página.")
+        return redirect('/')
+    
+    logger.debug(f"Acesso permitido para {user.username} (staff: {user.is_staff})")
     
     # Autenticar o usuário na sessão Django para que o formulário funcione
     from django.contrib.auth import login
-    if not request.user.is_authenticated:
+    if not request.user.is_authenticated or request.user != user:
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     
     if request.method == 'POST':
