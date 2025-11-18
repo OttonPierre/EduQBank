@@ -5,6 +5,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import viewsets, generics
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from app.models import Questao, Conteudo
 from app.forms import QuestaoForm
 from app.serializers import QuestaoSerializer
@@ -135,8 +137,50 @@ def questao_detail(request, pk):
 def is_staff(user):
     return user.is_authenticated and user.is_staff
 
-@user_passes_test(is_staff, login_url='/api/auth/login/')
+def authenticate_jwt_request(request):
+    """
+    Autentica a requisição usando JWT token do header Authorization ou cookie.
+    Retorna o usuário se autenticado, None caso contrário.
+    """
+    jwt_auth = JWTAuthentication()
+    token = None
+    
+    # Tentar obter token do header Authorization primeiro
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+    else:
+        # Tentar obter token do cookie
+        token = request.COOKIES.get('jwt_token')
+    
+    if token:
+        try:
+            validated_token = jwt_auth.get_validated_token(token)
+            user = jwt_auth.get_user(validated_token)
+            return user
+        except (InvalidToken, TokenError, KeyError, IndexError):
+            pass
+    return None
+
 def cadastro_questao(request):
+    # Verificar autenticação via JWT primeiro (para requisições do frontend)
+    user = authenticate_jwt_request(request)
+    
+    # Se não autenticado via JWT, verificar sessão Django (para uso direto no navegador)
+    if not user:
+        user = request.user if request.user.is_authenticated else None
+    
+    # Verificar se está autenticado e é staff
+    if not user or not user.is_authenticated or not user.is_staff:
+        # Redirecionar para a página inicial do frontend com mensagem
+        messages.error(request, "Você precisa estar autenticado como staff para acessar esta página.")
+        return redirect('/')
+    
+    # Autenticar o usuário na sessão Django para que o formulário funcione
+    from django.contrib.auth import login
+    if not request.user.is_authenticated:
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    
     if request.method == 'POST':
         form = QuestaoForm(request.POST, request.FILES)
         if form.is_valid():
