@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +22,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-mm*t!tsgl5=)f)@hevqnyn_nbiiq71m4@kottj1w3=ju!yzq%g'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-mm*t!tsgl5=)f)@hevqnyn_nbiiq71m4@kottj1w3=ju!yzq%g')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+# Configuração de ALLOWED_HOSTS para produção
+ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -135,13 +141,43 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'assets'),
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Configuração de CORS
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+
+# Se estiver em desenvolvimento, permitir todas as origens
+# Em produção, use CORS_ALLOWED_ORIGINS com os domínios específicos
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    # Em desenvolvimento, definir origens padrão para CSRF
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS_ENV = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+    if CORS_ALLOWED_ORIGINS_ENV:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_ENV.split(',')]
+    else:
+        # Fallback para localhost em caso de não especificar
+        CORS_ALLOWED_ORIGINS = [
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ]
+
+# Configurações adicionais de CORS para produção
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 MEDIA_URL = '/media/'
@@ -191,3 +227,42 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
+
+# Configurações do JWT
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Token de acesso válido por 1 dia
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Token de refresh válido por 7 dias
+    'ROTATE_REFRESH_TOKENS': True,  # Rotacionar refresh tokens
+    'BLACKLIST_AFTER_ROTATION': True,  # Adicionar tokens antigos à blacklist
+    'UPDATE_LAST_LOGIN': True,  # Atualizar último login
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
+
+# Configurações de Sessão para produção
+SESSION_COOKIE_SECURE = not DEBUG  # True em produção (HTTPS), False em desenvolvimento
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = 86400  # 24 horas
+
+# Configurações de CSRF para produção
+CSRF_COOKIE_SECURE = not DEBUG  # True em produção (HTTPS), False em desenvolvimento
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+# CSRF_TRUSTED_ORIGINS deve incluir os domínios que fazem requisições
+CSRF_TRUSTED_ORIGINS_ENV = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+if CSRF_TRUSTED_ORIGINS_ENV:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in CSRF_TRUSTED_ORIGINS_ENV.split(',')]
+else:
+    # Usar CORS_ALLOWED_ORIGINS como fallback (já definido acima)
+    try:
+        CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
+    except NameError:
+        CSRF_TRUSTED_ORIGINS = []
