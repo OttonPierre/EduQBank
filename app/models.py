@@ -39,5 +39,5 @@ class Questao(models.Model):
     grau_escolaridade = models.CharField(max_length=20, choices=GRAU_ESCOLARIDADE_CHOICES)
     
     enunciado = RichTextUploadingField('Enunciado')
-    expectativa_resposta = RichTextUploadingField('Resposta')
+    resposta = RichTextUploadingField('Resposta')
     resposta_gabarito = RichTextUploadingField('Resposta Gabarito', blank=True, null=True)
