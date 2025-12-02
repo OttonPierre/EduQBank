@@ -2,7 +2,7 @@ from django.db import models
 from ckeditor_uploader.fields import RichTextUploadingField
 
 class Conteudo(models.Model):
-    nome = models.CharField(max_length=100)
+    nome = models.CharField(max_length=500)
     pai = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT, related_name='subconteudos')
     
     TIPO_CHOICES = [
@@ -36,9 +36,8 @@ class Questao(models.Model):
         ('medio', 'Ensino Médio'),
         ('superior', 'Ensino Superior'),
     ]
-    grau_escolaridade = models.CharField(max_length=20, choices=GRAU_ESCOLARIDADE_CHOICES, default='medio')
+    grau_escolaridade = models.CharField(max_length=20, choices=GRAU_ESCOLARIDADE_CHOICES)
     
     enunciado = RichTextUploadingField('Enunciado')
-    resposta = RichTextUploadingField('Resposta')
-    resposta_gabarito = RichTextUploadingField('Resposta do Gabarito', blank=True, null=True)
-
+    expectativa_resposta = RichTextUploadingField('Resposta')
+    resposta_gabarito = RichTextUploadingField('Resposta Gabarito', blank=True, null=True)
