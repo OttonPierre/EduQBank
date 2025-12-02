@@ -70,6 +70,11 @@ def print_test_docx(request):
     if not questions:
         return Response({"detail": "Nenhuma questão encontrada"}, status=404)
     
+    # Obter nome da prova (se fornecido)
+    test_name = request.data.get('test_name', '').strip()
+    if not test_name:
+        test_name = "prova" if not include_gabarito else "prova_com_gabarito"
+    
     # Try pypandoc first (preferred)
     pp_bytes = _generate_with_pypandoc(
         questions,
@@ -80,8 +85,7 @@ def print_test_docx(request):
     )
     if pp_bytes:
         resp = HttpResponse(pp_bytes, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        filename = "prova" if not include_gabarito else "prova_com_gabarito"
-        resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+        resp["Content-Disposition"] = f'attachment; filename="{test_name}.docx"'
         return resp
     
     # Fallback to pandoc CLI
@@ -94,8 +98,7 @@ def print_test_docx(request):
     )
     if pandoc_bytes:
         resp = HttpResponse(pandoc_bytes, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        filename = "prova" if not include_gabarito else "prova_com_gabarito"
-        resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+        resp["Content-Disposition"] = f'attachment; filename="{test_name}.docx"'
         return resp
 
     # Fallback to python-docx
@@ -175,8 +178,7 @@ def print_test_docx(request):
     buffer = io.BytesIO()
     document.save(buffer)
     buffer.seek(0)
-    filename = "prova" if not include_gabarito else "prova_com_gabarito"
     resp = HttpResponse(buffer.getvalue(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    resp["Content-Disposition"] = f'attachment; filename="{filename}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx"'
+    resp["Content-Disposition"] = f'attachment; filename="{test_name}.docx"'
     return resp
 

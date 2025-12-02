@@ -42,64 +42,152 @@ class QuestaoViewSet(viewsets.ModelViewSet):
         if search:
             queryset = queryset.filter(enunciado__icontains=search)
         
-        area_id = self.request.query_params.get('area_id', None)
-        if area_id:
+        # Suporte para múltipla seleção usando listas
+        area_ids = self.request.query_params.getlist('area_id') or self.request.query_params.getlist('area_ids')
+        unidade_ids = self.request.query_params.getlist('unidade_id') or self.request.query_params.getlist('unidade_ids')
+        topico_ids = self.request.query_params.getlist('topico_id') or self.request.query_params.getlist('topico_ids')
+        subtopico_ids = self.request.query_params.getlist('subtopico_id') or self.request.query_params.getlist('subtopico_ids')
+        categoria_ids = self.request.query_params.getlist('categoria_id') or self.request.query_params.getlist('categoria_ids')
+        
+        # Converter para inteiros
+        try:
+            area_ids_int = [int(aid) for aid in area_ids] if area_ids else []
+            unidade_ids_int = [int(uid) for uid in unidade_ids] if unidade_ids else []
+            topico_ids_int = [int(tid) for tid in topico_ids] if topico_ids else []
+            subtopico_ids_int = [int(sid) for sid in subtopico_ids] if subtopico_ids else []
+            categoria_ids_int = [int(cid) for cid in categoria_ids] if categoria_ids else []
+        except ValueError:
+            area_ids_int = []
+            unidade_ids_int = []
+            topico_ids_int = []
+            subtopico_ids_int = []
+            categoria_ids_int = []
+        
+        # Lógica: Se há áreas E unidades/tópicos selecionados, fazer OR entre combinações
+        # Exemplo: (área=Matemática) OU (área=Química E unidade=Química Orgânica)
+        if area_ids_int and (unidade_ids_int or topico_ids_int or subtopico_ids_int or categoria_ids_int):
+            from app.models import Conteudo
+            
+            # Para cada área, criar uma condição que inclui a área E seus filhos selecionados
+            area_conditions = []
+            
+            for area_id in area_ids_int:
+                area_q = Q(area_id=area_id)
+                has_children_filter = False
+                
+                # Verificar se há unidades desta área selecionadas
+                if unidade_ids_int:
+                    unidades_da_area = list(Conteudo.objects.filter(
+                        tipo='unidade', 
+                        pai_id=area_id, 
+                        id__in=unidade_ids_int
+                    ).values_list('id', flat=True))
+                    if unidades_da_area:
+                        area_q &= Q(unidade_id__in=unidades_da_area)
+                        has_children_filter = True
+                
+                # Verificar se há tópicos de unidades desta área selecionados
+                if topico_ids_int and not has_children_filter:
+                    unidades_da_area = Conteudo.objects.filter(
+                        tipo='unidade', 
+                        pai_id=area_id
+                    ).values_list('id', flat=True)
+                    topicos_da_area = list(Conteudo.objects.filter(
+                        tipo='topico',
+                        pai_id__in=unidades_da_area,
+                        id__in=topico_ids_int
+                    ).values_list('id', flat=True))
+                    if topicos_da_area:
+                        area_q &= Q(topico_id__in=topicos_da_area)
+                        has_children_filter = True
+                
+                # Verificar se há subtópicos de tópicos desta área selecionados
+                if subtopico_ids_int and not has_children_filter:
+                    unidades_da_area = Conteudo.objects.filter(
+                        tipo='unidade', 
+                        pai_id=area_id
+                    ).values_list('id', flat=True)
+                    topicos_da_area = Conteudo.objects.filter(
+                        tipo='topico',
+                        pai_id__in=unidades_da_area
+                    ).values_list('id', flat=True)
+                    subtopicos_da_area = list(Conteudo.objects.filter(
+                        tipo='subtopico',
+                        pai_id__in=topicos_da_area,
+                        id__in=subtopico_ids_int
+                    ).values_list('id', flat=True))
+                    if subtopicos_da_area:
+                        area_q &= Q(subtopico_id__in=subtopicos_da_area)
+                        has_children_filter = True
+                
+                # Verificar se há categorias de subtópicos desta área selecionadas
+                if categoria_ids_int and not has_children_filter:
+                    unidades_da_area = Conteudo.objects.filter(
+                        tipo='unidade', 
+                        pai_id=area_id
+                    ).values_list('id', flat=True)
+                    topicos_da_area = Conteudo.objects.filter(
+                        tipo='topico',
+                        pai_id__in=unidades_da_area
+                    ).values_list('id', flat=True)
+                    subtopicos_da_area = Conteudo.objects.filter(
+                        tipo='subtopico',
+                        pai_id__in=topicos_da_area
+                    ).values_list('id', flat=True)
+                    categorias_da_area = list(Conteudo.objects.filter(
+                        tipo='categoria',
+                        pai_id__in=subtopicos_da_area,
+                        id__in=categoria_ids_int
+                    ).values_list('id', flat=True))
+                    if categorias_da_area:
+                        area_q &= Q(categoria_id__in=categorias_da_area)
+                        has_children_filter = True
+                
+                # Se não há filhos desta área selecionados, incluir todas as questões desta área
+                area_conditions.append(area_q)
+            
+            # Combinar todas as condições com OR
+            if area_conditions:
+                combined_q = area_conditions[0]
+                for condition in area_conditions[1:]:
+                    combined_q |= condition
+                queryset = queryset.filter(combined_q)
+        else:
+            # Comportamento padrão: AND entre diferentes tipos de filtros
+            if area_ids_int:
+                queryset = queryset.filter(area_id__in=area_ids_int)
+            if unidade_ids_int:
+                queryset = queryset.filter(unidade_id__in=unidade_ids_int)
+            if topico_ids_int:
+                queryset = queryset.filter(topico_id__in=topico_ids_int)
+            if subtopico_ids_int:
+                queryset = queryset.filter(subtopico_id__in=subtopico_ids_int)
+            if categoria_ids_int:
+                queryset = queryset.filter(categoria_id__in=categoria_ids_int)
+        
+        anos = self.request.query_params.getlist('ano')
+        if anos:
             try:
-                queryset = queryset.filter(area_id=int(area_id))
+                anos_int = [int(a) for a in anos]
+                queryset = queryset.filter(ano__in=anos_int)
             except ValueError:
                 pass
         
-        unidade_id = self.request.query_params.get('unidade_id', None)
-        if unidade_id:
-            try:
-                queryset = queryset.filter(unidade_id=int(unidade_id))
-            except ValueError:
-                pass
+        bancas = self.request.query_params.getlist('banca')
+        if bancas:
+            queryset = queryset.filter(banca__in=bancas)
         
-        topico_id = self.request.query_params.get('topico_id', None)
-        if topico_id:
-            try:
-                queryset = queryset.filter(topico_id=int(topico_id))
-            except ValueError:
-                pass
+        tipos_questao = self.request.query_params.getlist('tipo_questao')
+        if tipos_questao:
+            queryset = queryset.filter(tipo_questao__in=tipos_questao)
         
-        subtopico_id = self.request.query_params.get('subtopico_id', None)
-        if subtopico_id:
-            try:
-                queryset = queryset.filter(subtopico_id=int(subtopico_id))
-            except ValueError:
-                pass
+        dificuldades = self.request.query_params.getlist('dificuldade')
+        if dificuldades:
+            queryset = queryset.filter(dificuldade__in=dificuldades)
         
-        categoria_id = self.request.query_params.get('categoria_id', None)
-        if categoria_id:
-            try:
-                queryset = queryset.filter(categoria_id=int(categoria_id))
-            except ValueError:
-                pass
-        
-        ano = self.request.query_params.get('ano', None)
-        if ano:
-            try:
-                ano_int = int(ano)
-                queryset = queryset.filter(ano=ano_int)
-            except ValueError:
-                pass
-        
-        banca = self.request.query_params.get('banca', None)
-        if banca:
-            queryset = queryset.filter(banca__icontains=banca)
-        
-        tipo_questao = self.request.query_params.get('tipo_questao', None)
-        if tipo_questao:
-            queryset = queryset.filter(tipo_questao__icontains=tipo_questao)
-        
-        dificuldade = self.request.query_params.get('dificuldade', None)
-        if dificuldade:
-            queryset = queryset.filter(dificuldade__icontains=dificuldade)
-        
-        grau_escolaridade = self.request.query_params.get('grau_escolaridade', None)
-        if grau_escolaridade:
-            queryset = queryset.filter(grau_escolaridade=grau_escolaridade)
+        graus_escolaridade = self.request.query_params.getlist('grau_escolaridade')
+        if graus_escolaridade:
+            queryset = queryset.filter(grau_escolaridade__in=graus_escolaridade)
         
         tem_imagem = self.request.query_params.get('tem_imagem', None)
         if tem_imagem is not None:
