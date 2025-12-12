@@ -1,0 +1,114 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block title %}Início - EduQBank{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container text-center">
+        <h1 class="display-4 fw-bold mb-3">Bem-vindo ao EduQBank</h1>
+        <p class="lead mb-4">Pratique com questões do ENEM e dos maiores vestibulares do Brasil</p>
+        {% if not is_authenticated %}
+        <a href="{% url 'login' %}" class="btn btn-light btn-lg">
+            <i class="fas fa-sign-in-alt me-2"></i>Entrar / Cadastrar
+        </a>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Áreas do Conhecimento -->
+<section class="container">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold mb-3">ESCOLHA O COMPONENTE CURRICULAR</h2>
+        <p class="lead text-muted">
+            📚 Pratique com questões organizadas por todas as áreas do conhecimento!
+        </p>
+    </div>
+
+    <div class="row g-4">
+        {% for area in areas %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card subject-card h-100" onclick="window.location.href='{% url 'questoes_list' %}?area_id={{ area.id }}'">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        {% if area.nome == "Matemática" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                            <i class="fas fa-calculator fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "Química" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                            <i class="fas fa-flask fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "Física" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);">
+                            <i class="fas fa-atom fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "Biologia" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                            <i class="fas fa-dna fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "História" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                            <i class="fas fa-landmark fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "Geografia" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);">
+                            <i class="fas fa-globe fa-2x text-white"></i>
+                        </div>
+                        {% elif area.nome == "Português" %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);">
+                            <i class="fas fa-book fa-2x text-white"></i>
+                        </div>
+                        {% else %}
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                            <i class="fas fa-book-open fa-2x text-white"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h4 class="card-title fw-bold">{{ area.nome }}</h4>
+                    {% if is_authenticated %}
+                    <span class="badge bg-primary" id="count-{{ area.id }}">
+                        {{ area.questao_count }} questão{{ area.questao_count|pluralize:"es" }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">Faça login para ver</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <p class="text-muted">Nenhuma área cadastrada ainda.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Call to Action -->
+{% if is_authenticated %}
+<section class="container mt-5 mb-5">
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);">
+        <div class="card-body text-center p-5" style="color: white !important;">
+            <h3 class="card-title mb-4" style="color: white !important; font-weight: 700;">Pronto para começar?</h3>
+            <p class="card-text mb-4" style="color: rgba(255, 255, 255, 0.95) !important; font-size: 1.1rem;">Cadastre questões e pratique para o Enem!</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{% url 'criar_prova' %}" class="btn btn-light btn-lg" style="font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                    <i class="fas fa-file-alt me-2"></i>Montar Prova
+                </a>
+                {% if is_staff %}
+                <a href="{% url 'cadastro_questao' %}" class="btn btn-warning btn-lg" style="font-weight: 600; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+                    <i class="fas fa-plus-circle me-2"></i>Cadastrar Questão
+                </a>
+                {% endif %}
+                <a href="{% url 'perfil' %}" class="btn btn-outline-light btn-lg" style="font-weight: 600; border: 2px solid white; color: white;">
+                    <i class="fas fa-user-circle me-2"></i>Meu Perfil
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+

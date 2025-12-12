@@ -3,7 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login as django_login, logout as django_logout
+from django.shortcuts import render, redirect
+from django.contrib import messages
 
 
 @api_view(["POST"])
@@ -81,4 +83,67 @@ def update_user_profile(request):
             "is_superuser": request.user.is_superuser
         }
     })
+
+
+# Views com templates Django
+def login_page(request):
+    """Página de login com template"""
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        if not email or not password:
+            messages.error(request, "Preencha todos os campos.")
+            return render(request, 'app/pages/auth.html', {'mode': 'login'})
+        
+        user = authenticate(username=email, password=password)
+        if user is None:
+            messages.error(request, "Credenciais inválidas.")
+            return render(request, 'app/pages/auth.html', {'mode': 'login'})
+        
+        django_login(request, user)
+        messages.success(request, f"Bem-vindo, {user.username}!")
+        next_url = request.GET.get('next', 'index')
+        return redirect(next_url)
+    
+    return render(request, 'app/pages/auth.html', {'mode': 'login'})
+
+
+def signup_page(request):
+    """Página de cadastro com template"""
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        if not email or not password:
+            messages.error(request, "Preencha todos os campos.")
+            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+        
+        if len(password) < 8:
+            messages.error(request, "A senha deve ter pelo menos 8 caracteres.")
+            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+        
+        if User.objects.filter(username=email).exists():
+            messages.error(request, "Este email já está cadastrado.")
+            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+        
+        user = User.objects.create_user(username=email, email=email, password=password)
+        django_login(request, user)
+        messages.success(request, "Conta criada com sucesso!")
+        return redirect('index')
+    
+    return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+
+
+def logout_page(request):
+    """Logout do usuário"""
+    django_logout(request)
+    messages.info(request, "Você saiu da sua conta.")
+    return redirect('index')
 

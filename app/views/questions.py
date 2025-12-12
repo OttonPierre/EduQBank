@@ -296,11 +296,15 @@ def cadastro_questao(request):
     if request.method == 'POST':
         form = QuestaoForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Questão cadastrada com sucesso!")
-            return redirect('cadastro_questao')
+            questao = form.save()
+            messages.success(request, f"Questão #{questao.id} cadastrada com sucesso!")
+            # Limpar o formulário para cadastrar nova questão
+            form = QuestaoForm()
+            # Forçar atualização do cache do Django
+            from django.core.cache import cache
+            cache.clear()
         else:
-            messages.error(request, "Erro ao cadastrar questão.")
+            messages.error(request, "Erro ao cadastrar questão. Verifique os campos.")
     else:
         form = QuestaoForm()
 

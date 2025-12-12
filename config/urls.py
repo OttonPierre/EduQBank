@@ -25,9 +25,19 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('app.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
+    
+    # Páginas principais
+    path('', views.index, name='index'),
+    path('questoes/', views.questoes_list, name='questoes_list'),
+    path('questao/<int:questao_id>/', views.questao_detail_page, name='questao_detail_page'),
+    path('criar-prova/', views.criar_prova, name='criar_prova'),
+    path('perfil/', views.perfil, name='perfil'),
+    
+    # Autenticação
+    path('login/', views.login_page, name='login'),
+    path('signup/', views.signup_page, name='signup'),
+    path('logout/', views.logout_page, name='logout'),
+    
+    # Cadastro de questão (staff)
     path('cadastro_questao/', views.cadastro_questao, name='cadastro_questao'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-urlpatterns.append(
-    re_path(r'^.*', TemplateView.as_view(template_name='index.html'))
-)

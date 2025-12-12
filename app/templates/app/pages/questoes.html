@@ -1,0 +1,477 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block title %}Questões - EduQBank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .question-card:hover {
+        box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+        transform: translateY(-5px);
+        border-left-width: 6px;
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 1rem;
+    }
+    
+    .question-header h5 a {
+        color: var(--dark-color);
+        font-weight: 700;
+        transition: color 0.3s;
+    }
+    
+    .question-header h5 a:hover {
+        color: var(--primary-color);
+    }
+    
+    .question-meta {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .question-preview {
+        max-height: 150px;
+        overflow: hidden;
+        position: relative;
+        color: #64748b;
+    }
+    
+    .question-preview::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: linear-gradient(to bottom, transparent, white);
+    }
+    
+    .filter-toggle {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .filter-section {
+        border: 1px solid var(--light-gray);
+    }
+    
+    #filtersContent {
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="hero-section">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-2">Banco de Questões</h1>
+        <p class="lead">
+            {% if page_obj %}
+                {{ page_obj.paginator.count }} questão{{ page_obj.paginator.count|pluralize:"es" }} encontrada{{ page_obj.paginator.count|pluralize:"s" }}
+            {% else %}
+                Carregando...
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Busca e Filtros -->
+    <div class="filter-section bg-white p-4 rounded mb-4" style="box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2 text-primary"></i>Filtros de Busca
+            </h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleFilters()" id="toggleFiltersBtn">
+                <i class="fas fa-chevron-{% if filtros_ativos.area_ids|length > 0 or filtros_ativos.unidade_ids|length > 0 or filtros_ativos.topico_ids|length > 0 or filtros_ativos.anos|length > 0 or filtros_ativos.bancas|length > 0 or filtros_ativos.dificuldades|length > 0 or filtros_ativos.tipos_questao|length > 0 or filtros_ativos.graus_escolaridade|length > 0 or filtros_ativos.tem_imagem %}up{% else %}down{% endif %} me-1"></i>
+                <span id="toggleFiltersText">{% if filtros_ativos.area_ids|length > 0 or filtros_ativos.unidade_ids|length > 0 or filtros_ativos.topico_ids|length > 0 or filtros_ativos.anos|length > 0 or filtros_ativos.bancas|length > 0 or filtros_ativos.dificuldades|length > 0 or filtros_ativos.tipos_questao|length > 0 or filtros_ativos.graus_escolaridade|length > 0 or filtros_ativos.tem_imagem %}Ocultar{% else %}Mostrar{% endif %} Filtros</span>
+            </button>
+        </div>
+        
+        <form method="get" action="{% url 'questoes_list' %}" id="filterForm">
+            <!-- Busca -->
+            <div class="mb-4">
+                <label for="search" class="form-label fw-bold">
+                    <i class="fas fa-search me-2"></i>Buscar por palavra-chave
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search }}" placeholder="Digite palavras-chave do enunciado...">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filtros Expandíveis -->
+            <div id="filtersContent" style="display: {% if filtros_ativos.area_ids|length > 0 or filtros_ativos.unidade_ids|length > 0 or filtros_ativos.topico_ids|length > 0 or filtros_ativos.anos|length > 0 or filtros_ativos.bancas|length > 0 or filtros_ativos.dificuldades|length > 0 or filtros_ativos.tipos_questao|length > 0 or filtros_ativos.graus_escolaridade|length > 0 or filtros_ativos.tem_imagem %}block{% else %}none{% endif %};">
+                <!-- Hierarquia de Conteúdo -->
+                <div class="mb-4">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-sitemap me-2"></i>Classificação por Conteúdo
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                            <label for="area_id" class="form-label">Área</label>
+                            <select class="form-select" id="area_id" name="area_id">
+                                <option value="">Todas as áreas</option>
+                                {% for area in areas %}
+                                <option value="{{ area.id }}" {% if area.id|stringformat:"s" in filtros_ativos.area_ids %}selected{% endif %}>
+                                    {{ area.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="unidade_id" class="form-label">Unidade</label>
+                            <select class="form-select" id="unidade_id" name="unidade_id" {% if not unidades %}disabled{% endif %}>
+                                <option value="">Todas as unidades</option>
+                                {% for unidade in unidades %}
+                                <option value="{{ unidade.id }}" {% if unidade.id|stringformat:"s" in filtros_ativos.unidade_ids %}selected{% endif %}>
+                                    {{ unidade.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="topico_id" class="form-label">Tópico</label>
+                            <select class="form-select" id="topico_id" name="topico_id" {% if not topicos %}disabled{% endif %}>
+                                <option value="">Todos os tópicos</option>
+                                {% for topico in topicos %}
+                                <option value="{{ topico.id }}" {% if topico.id|stringformat:"s" in filtros_ativos.topico_ids %}selected{% endif %}>
+                                    {{ topico.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="subtopico_id" class="form-label">Subtópico</label>
+                            <select class="form-select" id="subtopico_id" name="subtopico_id" {% if not subtopicos %}disabled{% endif %}>
+                                <option value="">Todos os subtópicos</option>
+                                {% for subtopico in subtopicos %}
+                                <option value="{{ subtopico.id }}" {% if subtopico.id|stringformat:"s" in filtros_ativos.subtopico_ids %}selected{% endif %}>
+                                    {{ subtopico.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros Adicionais -->
+                <div class="mb-4">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-sliders-h me-2"></i>Outros Filtros
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-3">
+                            <label for="ano" class="form-label">Ano</label>
+                            <select class="form-select" id="ano" name="ano">
+                                <option value="">Todos os anos</option>
+                                {% for ano in anos_disponiveis %}
+                                <option value="{{ ano }}" {% if ano|stringformat:"s" in filtros_ativos.anos %}selected{% endif %}>
+                                    {{ ano }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="banca" class="form-label">Banca</label>
+                            <select class="form-select" id="banca" name="banca">
+                                <option value="">Todas as bancas</option>
+                                {% for banca in bancas_disponiveis %}
+                                <option value="{{ banca }}" {% if banca in filtros_ativos.bancas %}selected{% endif %}>
+                                    {{ banca }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="tipo_questao" class="form-label">Tipo de Questão</label>
+                            <select class="form-select" id="tipo_questao" name="tipo_questao">
+                                <option value="">Todos os tipos</option>
+                                {% for tipo in tipos_disponiveis %}
+                                <option value="{{ tipo }}" {% if tipo in filtros_ativos.tipos_questao %}selected{% endif %}>
+                                    {{ tipo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="dificuldade" class="form-label">Dificuldade</label>
+                            <select class="form-select" id="dificuldade" name="dificuldade">
+                                <option value="">Todas as dificuldades</option>
+                                {% for dificuldade in dificuldades_disponiveis %}
+                                <option value="{{ dificuldade }}" {% if dificuldade in filtros_ativos.dificuldades %}selected{% endif %}>
+                                    {{ dificuldade }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="grau_escolaridade" class="form-label">Grau de Escolaridade</label>
+                            <select class="form-select" id="grau_escolaridade" name="grau_escolaridade">
+                                <option value="">Todos os graus</option>
+                                {% for grau in graus_disponiveis %}
+                                <option value="{{ grau }}" {% if grau in filtros_ativos.graus_escolaridade %}selected{% endif %}>
+                                    {{ grau|title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3">
+                            <label for="tem_imagem" class="form-label">Questões com Imagem</label>
+                            <select class="form-select" id="tem_imagem" name="tem_imagem">
+                                <option value="">Todas</option>
+                                <option value="true" {% if filtros_ativos.tem_imagem == 'true' %}selected{% endif %}>Com imagem</option>
+                                <option value="false" {% if filtros_ativos.tem_imagem == 'false' %}selected{% endif %}>Sem imagem</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botões de Ação -->
+                <div class="d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                    </button>
+                    <a href="{% url 'questoes_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Limpar Todos
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Questões -->
+    <div id="questionsList">
+        {% for questao in questoes %}
+        <div class="question-card" data-question-id="{{ questao.id }}">
+            <div class="question-header">
+                <div>
+                    <h5 class="mb-2">
+                        <a href="{% url 'questao_detail_page' questao.id %}" class="text-decoration-none">
+                            Questão #{{ questao.id }}
+                        </a>
+                    </h5>
+                    <div class="question-meta">
+                        <span class="badge bg-primary">{{ questao.area.nome }}</span>
+                        {% if questao.unidade %}
+                        <span class="badge bg-secondary">{{ questao.unidade.nome }}</span>
+                        {% endif %}
+                        <span class="badge bg-info">{{ questao.ano }}</span>
+                        <span class="badge bg-warning">{{ questao.banca }}</span>
+                        <span class="badge bg-{% if questao.dificuldade == 'Fácil' %}success{% elif questao.dificuldade == 'Média' %}warning{% else %}danger{% endif %}">
+                            {{ questao.dificuldade }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="question-preview prose">
+                {{ questao.enunciado|safe|truncatewords_html:50 }}
+            </div>
+            <div class="mt-2 d-flex gap-2">
+                <a href="{% url 'questao_detail_page' questao.id %}" class="btn btn-sm btn-outline-primary">
+                    Ver Detalhes <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+                <button class="btn btn-sm btn-success add-to-test-btn" 
+                        onclick="addQuestionToSelection({{ questao.id }}, {area: '{{ questao.area.nome }}', ano: {{ questao.ano }}})">
+                    <i class="fas fa-plus me-1"></i>Adicionar à Prova
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Nenhuma questão encontrada</h4>
+            <p class="text-muted">Tente ajustar os filtros ou a busca.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Paginação">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i> Anterior
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}">
+                    Próxima <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    <div class="text-center mt-3 text-muted">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // URL para buscar conteúdos filhos
+    const BUSCAR_CONTEUDOS_URL = "{% url 'buscar_conteudos' %}";
+    
+    // Função para carregar conteúdos filhos
+    function carregarFilhos(pai_id, seletor_filho, tipo) {
+        const $seletorFilho = $(seletor_filho);
+        
+        if (!pai_id) {
+            $seletorFilho.html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
+            return;
+        }
+        
+        $seletorFilho.html('<option value="">Carregando...</option>').prop('disabled', true);
+        
+        $.get(BUSCAR_CONTEUDOS_URL, { pai_id: pai_id }, function(data) {
+            let options = '<option value="">Todas</option>';
+            
+            if (Array.isArray(data)) {
+                data.forEach(function(item) {
+                    options += `<option value="${item.id}">${item.nome}</option>`;
+                });
+            }
+            
+            $seletorFilho.html(options).prop('disabled', false);
+        })
+        .fail(function() {
+            console.error("Falha ao carregar dados para: " + seletor_filho);
+            $seletorFilho.html('<option value="">Erro ao carregar</option>').prop('disabled', true);
+        });
+    }
+    
+    // Event listeners para hierarquia
+    $(document).ready(function() {
+        $('#area_id').on('change', function() {
+            const areaId = $(this).val();
+            carregarFilhos(areaId, '#unidade_id', 'unidade');
+            $('#topico_id, #subtopico_id, #categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
+        });
+        
+        $('#unidade_id').on('change', function() {
+            const unidadeId = $(this).val();
+            carregarFilhos(unidadeId, '#topico_id', 'topico');
+            $('#subtopico_id, #categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
+        });
+        
+        $('#topico_id').on('change', function() {
+            const topicoId = $(this).val();
+            carregarFilhos(topicoId, '#subtopico_id', 'subtopico');
+            $('#categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
+        });
+        
+        $('#subtopico_id').on('change', function() {
+            const subtopicoId = $(this).val();
+            carregarFilhos(subtopicoId, '#categoria_id', 'categoria');
+        });
+        
+        // Se já houver área selecionada, carregar unidades
+        if ($('#area_id').val()) {
+            carregarFilhos($('#area_id').val(), '#unidade_id', 'unidade');
+        }
+    });
+    
+    // Toggle dos filtros
+    function toggleFilters() {
+        const content = document.getElementById('filtersContent');
+        const btn = document.getElementById('toggleFiltersBtn');
+        const text = document.getElementById('toggleFiltersText');
+        const icon = btn.querySelector('i');
+        
+        if (content.style.display === 'none' || !content.style.display) {
+            content.style.display = 'block';
+            icon.className = 'fas fa-chevron-up me-1';
+            text.textContent = 'Ocultar Filtros';
+        } else {
+            content.style.display = 'none';
+            icon.className = 'fas fa-chevron-down me-1';
+            text.textContent = 'Mostrar Filtros';
+        }
+    }
+    
+    // Auto-submit na busca com debounce
+    let searchTimeout;
+    $('#search').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            $('#filterForm').submit();
+        }, 500);
+    });
+    
+    // Notificação ao adicionar questão
+    if (typeof window.addQuestionToSelection !== 'undefined') {
+        const originalAddQuestion = window.addQuestionToSelection;
+        window.addQuestionToSelection = function(id, data) {
+            originalAddQuestion(id, data);
+            // Mostrar notificação
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>Questão adicionada à prova!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        };
+    }
+</script>
+{% endblock %}
+

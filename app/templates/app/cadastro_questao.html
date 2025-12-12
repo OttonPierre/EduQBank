@@ -182,12 +182,17 @@
 
           <div class="d-flex flex-column align-items-center mt-4 mb-4">
             <button type="submit" class="btn btn-primary w-75 btn-lg fw-bold mb-3">
-              Cadastrar Questão
+              <i class="fas fa-save me-2"></i>Cadastrar Questão
             </button>
 
-            <a href="/" class="btn btn-secondary w-50 btn-lg" role="button">
-              Voltar ao Início
-            </a>
+            <div class="d-flex gap-2 w-75 justify-content-center">
+              <a href="{% url 'index' %}" class="btn btn-outline-primary w-50 btn-lg" role="button">
+                <i class="fas fa-home me-2"></i>Ver Início
+              </a>
+              <a href="{% url 'questoes_list' %}" class="btn btn-outline-secondary w-50 btn-lg" role="button">
+                <i class="fas fa-list me-2"></i>Ver Questões
+              </a>
+            </div>
           </div>
         </form>
       </div>

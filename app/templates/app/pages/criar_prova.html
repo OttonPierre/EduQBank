@@ -1,0 +1,233 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block title %}Criar Prova - EduQBank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .selection-mode {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+        border: 2px solid var(--primary-color);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+    }
+    
+    .question-checkbox {
+        margin-right: 0.5rem;
+    }
+    
+    .selected-count {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+    
+    #selectedQuestionsContainer .card {
+        border-left: 4px solid var(--success-color);
+        transition: all 0.3s;
+    }
+    
+    #selectedQuestionsContainer .card:hover {
+        border-left-width: 6px;
+        transform: translateX(5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-2">Criar Prova</h1>
+        <p class="lead">Selecione as questões e gere sua prova em DOCX</p>
+    </div>
+</div>
+
+<div class="container">
+    <form method="post" id="createTestForm">
+        {% csrf_token %}
+        
+        <!-- Modo Seleção -->
+        <div class="selection-mode">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-1">
+                        <i class="fas fa-check-square me-2"></i>Modo Seleção
+                    </h5>
+                    <p class="mb-0 text-muted">
+                        <span class="selected-count" id="selectedCount">0</span> questão(ões) selecionada(s)
+                    </p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
+                        <i class="fas fa-check-double me-1"></i>Selecionar Todas
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                        <i class="fas fa-times me-1"></i>Desmarcar Todas
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Opções de Gabarito -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Formato da Prova:</label>
+                <select class="form-select" name="gabarito_option" id="gabarito_option" required>
+                    <option value="final_arquivo" selected>Prova com Respostas no Final</option>
+                    <option value="apos_cada_questao">Prova com Resposta Após Cada Questão</option>
+                    <option value="somente_questoes">Somente Questões</option>
+                    <option value="somente_gabarito">Somente o Gabarito</option>
+                    <option value="somente_gabarito_com_expectativa">Somente Gabarito com Expectativas de Resposta</option>
+                </select>
+            </div>
+            
+            <!-- Nome da Prova -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nome da Prova:</label>
+                <input type="text" class="form-control" name="test_name" 
+                       placeholder="Ex: Prova de Matemática - 2025" value="Prova">
+            </div>
+            
+            <!-- Botão Gerar -->
+            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn" disabled>
+                <i class="fas fa-file-download me-2"></i>Gerar Prova (DOCX)
+            </button>
+        </div>
+        
+        <!-- Lista de Questões -->
+        <div id="questionsList">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Selecione as Questões</h5>
+                <a href="{% url 'questoes_list' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-list me-2"></i>Buscar Mais Questões
+                </a>
+            </div>
+            
+            <!-- Questões selecionadas serão carregadas via JavaScript -->
+            <div id="selectedQuestionsContainer">
+                <p class="text-muted">Nenhuma questão selecionada ainda. 
+                    <a href="{% url 'questoes_list' %}">Clique aqui para buscar questões</a>
+                </p>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Carregar questões selecionadas quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        renderSelectedQuestions();
+        updateSelectedCount();
+    });
+    
+    // Atualizar contador baseado no localStorage
+    function updateSelectedCount() {
+        const selected = JSON.parse(localStorage.getItem('selectedQuestions') || '[]');
+        const count = selected.length;
+        const countElement = document.getElementById('selectedCount');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+        const generateBtn = document.getElementById('generateBtn');
+        if (generateBtn) {
+            generateBtn.disabled = count === 0;
+        }
+    }
+    
+    // Renderizar questões selecionadas
+    function renderSelectedQuestions() {
+        const container = document.getElementById('selectedQuestionsContainer');
+        if (!container) return;
+        
+        const selected = JSON.parse(localStorage.getItem('selectedQuestions') || '[]');
+        
+        if (selected.length === 0) {
+            container.innerHTML = `
+                <p class="text-muted">Nenhuma questão selecionada ainda. 
+                    <a href="{% url 'questoes_list' %}">Clique aqui para buscar questões</a>
+                </p>
+            `;
+            return;
+        }
+        
+        let html = '<div class="row g-3">';
+        selected.forEach(q => {
+            html += `
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-2">Questão #${q.id}</h6>
+                                    ${q.area ? `<span class="badge bg-primary me-1">${q.area}</span>` : ''}
+                                    ${q.ano ? `<span class="badge bg-info">${q.ano}</span>` : ''}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="removeQuestionFromSelection(${q.id})">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="question_ids" value="${q.id}">
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+    
+    // Remover questão da seleção
+    function removeQuestionFromSelection(questionId) {
+        const selected = JSON.parse(localStorage.getItem('selectedQuestions') || '[]');
+        const filtered = selected.filter(q => q.id !== questionId);
+        localStorage.setItem('selectedQuestions', JSON.stringify(filtered));
+        renderSelectedQuestions();
+        updateSelectedCount();
+    }
+    
+    // Selecionar todas
+    function selectAll() {
+        const selected = JSON.parse(localStorage.getItem('selectedQuestions') || '[]');
+        selected.forEach(q => {
+            const checkbox = document.querySelector(`input[name="question_ids"][value="${q.id}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+        updateSelectedCount();
+    }
+    
+    // Desmarcar todas
+    function deselectAll() {
+        document.querySelectorAll('input[name="question_ids"]').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSelectedCount();
+    }
+    
+    // Limpar seleção
+    function clearSelection() {
+        localStorage.removeItem('selectedQuestions');
+        renderSelectedQuestions();
+        updateSelectedCount();
+    }
+    
+    // Adicionar botão de limpar
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectionMode = document.querySelector('.selection-mode');
+        if (selectionMode) {
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'btn btn-sm btn-outline-danger';
+            clearBtn.innerHTML = '<i class="fas fa-trash me-1"></i>Limpar Seleção';
+            clearBtn.onclick = clearSelection;
+            const btnGroup = selectionMode.querySelector('.d-flex.justify-content-between');
+            if (btnGroup) {
+                btnGroup.querySelector('div:last-child').appendChild(clearBtn);
+            }
+        }
+    });
+</script>
+{% endblock %}
+
