@@ -6,7 +6,6 @@ from .questions import (
     list_questoes,
     questao_detail,
     cadastro_questao,
-    inicio,
 )
 from .export import print_test_docx
 from .content import buscar_conteudos_filho, list_conteudos, get_unique_values
@@ -24,7 +23,6 @@ __all__ = [
     'list_questoes',
     'questao_detail',
     'cadastro_questao',
-    'inicio',
     'print_test_docx',
     'buscar_conteudos_filho',
     'list_conteudos',

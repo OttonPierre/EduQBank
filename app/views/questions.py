@@ -311,7 +311,3 @@ def cadastro_questao(request):
     areas = Conteudo.objects.filter(tipo='area')
     return render(request, 'app/cadastro_questao.html', {'form': form, 'areas': areas})
 
-
-def inicio(request):
-    return render(request, 'app/inicio.html')
-

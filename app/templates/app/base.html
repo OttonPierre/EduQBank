@@ -53,7 +53,7 @@
         
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(to bottom, #f1f5f9 0%, #ffffff 100%);
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -64,6 +64,9 @@
             background: var(--gradient-primary);
             box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
             backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1030;
+            border-bottom: 3px solid rgba(255, 255, 255, 0.1);
         }
         
         .navbar-brand {
@@ -84,11 +87,19 @@
             transform: translateY(-2px);
         }
         
+        .nav-item.dropdown {
+            position: relative;
+        }
+        
         .dropdown-menu {
             border: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             border-radius: 12px;
             padding: 0.5rem;
+            z-index: 1051;
+            position: absolute;
+            top: 100%;
+            right: 0;
         }
         
         .dropdown-item {
@@ -104,7 +115,9 @@
         
         .main-content {
             flex: 1;
-            padding: 0 0 2rem 0; /* remove espaçamento superior entre header e conteúdo */
+            padding: 0 0 2rem 0;
+            background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+            margin-top: 0;
         }
         
         .card {
@@ -190,6 +203,8 @@
             margin-bottom: 3rem;
             position: relative;
             overflow: hidden;
+            margin-top: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .hero-section::before {
@@ -445,26 +460,28 @@
                             <i class="fas fa-file-alt me-1"></i>Criar Prova
                         </a>
                     </li>
+                    {% if user.is_staff %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'cadastro_questao' %}">
+                            <i class="fas fa-plus-circle me-1"></i>Cadastrar Questão
+                        </a>
+                    </li>
+                    {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user me-1"></i>{{ user.username }}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="{% url 'perfil' %}">
-                                <i class="fas fa-user-circle me-2"></i>Meu Perfil
+                                <i class="fas fa-user-circle me-2"></i>Ver Perfil
                             </a></li>
-                            {% if user.is_staff %}
-                            <li><a class="dropdown-item" href="{% url 'cadastro_questao' %}">
-                                <i class="fas fa-plus-circle me-2"></i>Cadastrar Questão
-                            </a></li>
-                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}">
-                                <i class="fas fa-sign-out-alt me-2"></i>Sair
+                                <i class="fas fa-sign-out-alt me-2"></i>Deslogar
                             </a></li>
                         </ul>
                     </li>
