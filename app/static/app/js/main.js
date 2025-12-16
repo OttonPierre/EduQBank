@@ -3,7 +3,6 @@
 // Carregar questões selecionadas do localStorage
 function loadSelectedQuestions() {
     const selected = JSON.parse(localStorage.getItem('selectedQuestions') || '[]');
-    updateSelectedCount();
     return selected;
 }
 

@@ -35,7 +35,7 @@ def index(request):
         'is_staff': is_staff,
         'user': request.user if is_authenticated else None,
     }
-    return render(request, 'app/pages/index.html', context)
+    return render(request, 'app/index.html', context)
 
 
 @login_required
@@ -212,7 +212,7 @@ def questoes_list(request):
             'tem_imagem': tem_imagem,
         }
     }
-    return render(request, 'app/pages/questoes.html', context)
+    return render(request, 'app/questoes.html', context)
 
 
 @login_required
@@ -227,7 +227,7 @@ def questao_detail(request, questao_id):
     context = {
         'questao': questao,
     }
-    return render(request, 'app/pages/questao_detail.html', context)
+    return render(request, 'app/questao_detail.html', context)
 
 
 @login_required
@@ -257,12 +257,12 @@ def criar_prova(request):
         
         # Usar a view de exportação diretamente
         from app.views.export import print_test_docx
-        from rest_framework.request import Request
         from rest_framework.test import APIRequestFactory
         import json
         
         factory = APIRequestFactory()
-        api_request = factory.post('/api/print-test/docx/', 
+        api_request = factory.post(
+            '/api/print-test/docx/',
             json.dumps({
                 'question_ids': question_ids_int,
                 'gabarito_option': gabarito_option,
@@ -271,13 +271,9 @@ def criar_prova(request):
             content_type='application/json'
         )
         api_request.user = request.user
-        
-        # Criar um request wrapper para a API
-        from rest_framework.request import Request as DRFRequest
-        drf_request = DRFRequest(api_request)
-        
+
         try:
-            response = print_test_docx(drf_request)
+            response = print_test_docx(api_request)  # api_view espera HttpRequest; ele cria o DRF Request internamente
             # Limpar seleção após gerar
             return response
         except Exception as e:
@@ -289,7 +285,7 @@ def criar_prova(request):
     context = {
         'areas': areas,
     }
-    return render(request, 'app/pages/criar_prova.html', context)
+    return render(request, 'app/criar_prova.html', context)
 
 
 @login_required
@@ -314,5 +310,5 @@ def perfil(request):
     context = {
         'user': request.user,
     }
-    return render(request, 'app/pages/perfil.html', context)
+    return render(request, 'app/perfil.html', context)
 

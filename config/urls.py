@@ -18,13 +18,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from app import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('app.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
+    
+    # Favicon (aponta para asset estático)
+    re_path(r'^favicon\.ico$', RedirectView.as_view(url='/assets/favicon.ico', permanent=True)),
     
     # Páginas principais
     path('', views.index, name='index'),

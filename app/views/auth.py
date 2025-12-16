@@ -97,19 +97,19 @@ def login_page(request):
         
         if not email or not password:
             messages.error(request, "Preencha todos os campos.")
-            return render(request, 'app/pages/auth.html', {'mode': 'login'})
+            return render(request, 'app/auth.html', {'mode': 'login'})
         
         user = authenticate(username=email, password=password)
         if user is None:
             messages.error(request, "Credenciais inválidas.")
-            return render(request, 'app/pages/auth.html', {'mode': 'login'})
+            return render(request, 'app/auth.html', {'mode': 'login'})
         
         django_login(request, user)
         messages.success(request, f"Bem-vindo, {user.username}!")
         next_url = request.GET.get('next', 'index')
         return redirect(next_url)
     
-    return render(request, 'app/pages/auth.html', {'mode': 'login'})
+    return render(request, 'app/auth.html', {'mode': 'login'})
 
 
 def signup_page(request):
@@ -123,22 +123,22 @@ def signup_page(request):
         
         if not email or not password:
             messages.error(request, "Preencha todos os campos.")
-            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+            return render(request, 'app/auth.html', {'mode': 'signup'})
         
         if len(password) < 8:
             messages.error(request, "A senha deve ter pelo menos 8 caracteres.")
-            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+            return render(request, 'app/auth.html', {'mode': 'signup'})
         
         if User.objects.filter(username=email).exists():
             messages.error(request, "Este email já está cadastrado.")
-            return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+            return render(request, 'app/auth.html', {'mode': 'signup'})
         
         user = User.objects.create_user(username=email, email=email, password=password)
         django_login(request, user)
         messages.success(request, "Conta criada com sucesso!")
         return redirect('index')
     
-    return render(request, 'app/pages/auth.html', {'mode': 'signup'})
+    return render(request, 'app/auth.html', {'mode': 'signup'})
 
 
 def logout_page(request):
