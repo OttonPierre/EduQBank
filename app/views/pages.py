@@ -48,44 +48,97 @@ def questoes_list(request):
     if search:
         questoes = questoes.filter(enunciado__icontains=search)
     
-    # Filtros
-    area_ids = request.GET.getlist('area_id')
+    # Filtros - filtrar valores vazios e converter IDs para inteiros
+    area_ids_raw = request.GET.getlist('area_id')
+    area_ids = []
+    for a in area_ids_raw:
+        a_str = str(a).strip()
+        if a_str:
+            try:
+                area_ids.append(int(a_str))
+            except ValueError:
+                pass
     if area_ids:
         questoes = questoes.filter(area_id__in=area_ids)
     
-    unidade_ids = request.GET.getlist('unidade_id')
+    unidade_ids_raw = request.GET.getlist('unidade_id')
+    unidade_ids = []
+    for u in unidade_ids_raw:
+        u_str = str(u).strip()
+        if u_str:
+            try:
+                unidade_ids.append(int(u_str))
+            except ValueError:
+                pass
     if unidade_ids:
         questoes = questoes.filter(unidade_id__in=unidade_ids)
     
-    topico_ids = request.GET.getlist('topico_id')
+    topico_ids_raw = request.GET.getlist('topico_id')
+    topico_ids = []
+    for t in topico_ids_raw:
+        t_str = str(t).strip()
+        if t_str:
+            try:
+                topico_ids.append(int(t_str))
+            except ValueError:
+                pass
     if topico_ids:
         questoes = questoes.filter(topico_id__in=topico_ids)
     
-    subtopico_ids = request.GET.getlist('subtopico_id')
+    subtopico_ids_raw = request.GET.getlist('subtopico_id')
+    subtopico_ids = []
+    for s in subtopico_ids_raw:
+        s_str = str(s).strip()
+        if s_str:
+            try:
+                subtopico_ids.append(int(s_str))
+            except ValueError:
+                pass
     if subtopico_ids:
         questoes = questoes.filter(subtopico_id__in=subtopico_ids)
     
-    categoria_ids = request.GET.getlist('categoria_id')
+    categoria_ids_raw = request.GET.getlist('categoria_id')
+    categoria_ids = []
+    for c in categoria_ids_raw:
+        c_str = str(c).strip()
+        if c_str:
+            try:
+                categoria_ids.append(int(c_str))
+            except ValueError:
+                pass
     if categoria_ids:
         questoes = questoes.filter(categoria_id__in=categoria_ids)
     
-    anos = request.GET.getlist('ano')
+    # Filtro por ano (IntegerField) - ignorar valores vazios
+    anos_raw = request.GET.getlist('ano')
+    anos = []
+    for a in anos_raw:
+        a_str = str(a).strip()
+        if a_str:
+            try:
+                anos.append(int(a_str))
+            except ValueError:
+                pass
     if anos:
         questoes = questoes.filter(ano__in=anos)
     
-    bancas = request.GET.getlist('banca')
+    bancas_raw = request.GET.getlist('banca')
+    bancas = [b for b in bancas_raw if str(b).strip()]
     if bancas:
         questoes = questoes.filter(banca__in=bancas)
     
-    tipos_questao = request.GET.getlist('tipo_questao')
+    tipos_questao_raw = request.GET.getlist('tipo_questao')
+    tipos_questao = [t for t in tipos_questao_raw if str(t).strip()]
     if tipos_questao:
         questoes = questoes.filter(tipo_questao__in=tipos_questao)
     
-    dificuldades = request.GET.getlist('dificuldade')
+    dificuldades_raw = request.GET.getlist('dificuldade')
+    dificuldades = [d for d in dificuldades_raw if str(d).strip()]
     if dificuldades:
         questoes = questoes.filter(dificuldade__in=dificuldades)
     
-    graus_escolaridade = request.GET.getlist('grau_escolaridade')
+    graus_escolaridade_raw = request.GET.getlist('grau_escolaridade')
+    graus_escolaridade = [g for g in graus_escolaridade_raw if str(g).strip()]
     if graus_escolaridade:
         questoes = questoes.filter(grau_escolaridade__in=graus_escolaridade)
     
@@ -146,12 +199,12 @@ def questoes_list(request):
         'dificuldades_disponiveis': dificuldades_disponiveis,
         'graus_disponiveis': graus_disponiveis,
         'filtros_ativos': {
-            'area_ids': area_ids,
-            'unidade_ids': unidade_ids,
-            'topico_ids': topico_ids,
-            'subtopico_ids': subtopico_ids,
-            'categoria_ids': categoria_ids,
-            'anos': anos,
+            'area_ids': [str(a) for a in area_ids],
+            'unidade_ids': [str(u) for u in unidade_ids],
+            'topico_ids': [str(t) for t in topico_ids],
+            'subtopico_ids': [str(s) for s in subtopico_ids],
+            'categoria_ids': [str(c) for c in categoria_ids],
+            'anos': [str(a) for a in anos],
             'bancas': bancas,
             'tipos_questao': tipos_questao,
             'dificuldades': dificuldades,

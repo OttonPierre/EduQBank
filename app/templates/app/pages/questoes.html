@@ -138,51 +138,46 @@
                         <i class="fas fa-sitemap me-2"></i>Classificação por Conteúdo
                     </h6>
                     <div class="row g-3">
+                        <!-- Área (sempre carregada do backend) -->
                         <div class="col-md-6 col-lg-3">
                             <label for="area_id" class="form-label">Área</label>
                             <select class="form-select" id="area_id" name="area_id">
-                                <option value="">Todas as áreas</option>
+                                <option value="">Selecione</option>
                                 {% for area in areas %}
-                                <option value="{{ area.id }}" {% if area.id|stringformat:"s" in filtros_ativos.area_ids %}selected{% endif %}>
-                                    {{ area.nome }}
-                                </option>
+                                <option value="{{ area.id }}">{{ area.nome }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         
+                        <!-- Unidade (dinâmica via JS) -->
                         <div class="col-md-6 col-lg-3">
                             <label for="unidade_id" class="form-label">Unidade</label>
-                            <select class="form-select" id="unidade_id" name="unidade_id" {% if not unidades %}disabled{% endif %}>
-                                <option value="">Todas as unidades</option>
-                                {% for unidade in unidades %}
-                                <option value="{{ unidade.id }}" {% if unidade.id|stringformat:"s" in filtros_ativos.unidade_ids %}selected{% endif %}>
-                                    {{ unidade.nome }}
-                                </option>
-                                {% endfor %}
+                            <select class="form-select" id="unidade_id" name="unidade_id" disabled>
+                                <option value="">Selecione primeiro a Área</option>
                             </select>
                         </div>
                         
+                        <!-- Tópico (dinâmico via JS) -->
                         <div class="col-md-6 col-lg-3">
                             <label for="topico_id" class="form-label">Tópico</label>
-                            <select class="form-select" id="topico_id" name="topico_id" {% if not topicos %}disabled{% endif %}>
-                                <option value="">Todos os tópicos</option>
-                                {% for topico in topicos %}
-                                <option value="{{ topico.id }}" {% if topico.id|stringformat:"s" in filtros_ativos.topico_ids %}selected{% endif %}>
-                                    {{ topico.nome }}
-                                </option>
-                                {% endfor %}
+                            <select class="form-select" id="topico_id" name="topico_id" disabled>
+                                <option value="">Selecione primeiro a Unidade</option>
                             </select>
                         </div>
                         
+                        <!-- Subtópico (dinâmico via JS) -->
                         <div class="col-md-6 col-lg-3">
                             <label for="subtopico_id" class="form-label">Subtópico</label>
-                            <select class="form-select" id="subtopico_id" name="subtopico_id" {% if not subtopicos %}disabled{% endif %}>
-                                <option value="">Todos os subtópicos</option>
-                                {% for subtopico in subtopicos %}
-                                <option value="{{ subtopico.id }}" {% if subtopico.id|stringformat:"s" in filtros_ativos.subtopico_ids %}selected{% endif %}>
-                                    {{ subtopico.nome }}
-                                </option>
-                                {% endfor %}
+                            <select class="form-select" id="subtopico_id" name="subtopico_id" disabled>
+                                <option value="">Selecione primeiro o Tópico</option>
+                            </select>
+                        </div>
+
+                        <!-- Categoria (dinâmica via JS) -->
+                        <div class="col-md-6 col-lg-3">
+                            <label for="categoria_id" class="form-label">Categoria</label>
+                            <select class="form-select" id="categoria_id" name="categoria_id" disabled>
+                                <option value="">Selecione primeiro o Subtópico</option>
                             </select>
                         </div>
                     </div>
@@ -366,94 +361,85 @@
 
 {% block extra_js %}
 <script>
-    // URL para buscar conteúdos filhos
+  // Executa o script apenas quando o DOM estiver pronto
+  $(function() {
+    
+    // Armazena a URL em uma constante
     const BUSCAR_CONTEUDOS_URL = "{% url 'buscar_conteudos' %}";
-    
-    // Função para carregar conteúdos filhos
-    function carregarFilhos(pai_id, seletor_filho, tipo) {
-        const $seletorFilho = $(seletor_filho);
+
+    function carregarFilhos(pai_id, seletor_filho) {
+      const $seletorFilho = $(seletor_filho); // Cache do seletor jQuery
+
+      // Limpa e desabilita o seletor filho
+      let placeholder = '<option value="">Selecione</option>';
+      if (!pai_id) {
+        $seletorFilho.html(placeholder).prop('disabled', true);
+        return;
+      }
+      
+      // Atualiza o placeholder enquanto carrega
+      $seletorFilho.html('<option value="">Carregando...</option>').prop('disabled', true);
+
+      // Requisição AJAX
+      $.get(BUSCAR_CONTEUDOS_URL, { pai_id: pai_id }, function(data) {
+        let options = '<option value="">Selecione</option>';
         
-        if (!pai_id) {
-            $seletorFilho.html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
-            return;
+        // Verifica se 'data' é um array antes de usar forEach
+        if (Array.isArray(data)) {
+          data.forEach(function(item) {
+            options += `<option value="${item.id}">${item.nome}</option>`;
+          });
         }
         
-        $seletorFilho.html('<option value="">Carregando...</option>').prop('disabled', true);
-        
-        $.get(BUSCAR_CONTEUDOS_URL, { pai_id: pai_id }, function(data) {
-            let options = '<option value="">Todas</option>';
-            
-            if (Array.isArray(data)) {
-                data.forEach(function(item) {
-                    options += `<option value="${item.id}">${item.nome}</option>`;
-                });
-            }
-            
-            $seletorFilho.html(options).prop('disabled', false);
-        })
-        .fail(function() {
-            console.error("Falha ao carregar dados para: " + seletor_filho);
-            $seletorFilho.html('<option value="">Erro ao carregar</option>').prop('disabled', true);
-        });
+        $seletorFilho.html(options).prop('disabled', false);
+      })
+      .fail(function() {
+        // Adiciona tratamento de erro
+        console.error("Falha ao carregar dados para: " + seletor_filho);
+        $seletorFilho.html('<option value="">Erro ao carregar</option>').prop('disabled', true);
+      });
     }
-    
-    // Event listeners para hierarquia
-    $(document).ready(function() {
-        $('#area_id').on('change', function() {
-            const areaId = $(this).val();
-            carregarFilhos(areaId, '#unidade_id', 'unidade');
-            $('#topico_id, #subtopico_id, #categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
-        });
-        
-        $('#unidade_id').on('change', function() {
-            const unidadeId = $(this).val();
-            carregarFilhos(unidadeId, '#topico_id', 'topico');
-            $('#subtopico_id, #categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
-        });
-        
-        $('#topico_id').on('change', function() {
-            const topicoId = $(this).val();
-            carregarFilhos(topicoId, '#subtopico_id', 'subtopico');
-            $('#categoria_id').html('<option value="">Selecione primeiro o nível anterior</option>').prop('disabled', true);
-        });
-        
-        $('#subtopico_id').on('change', function() {
-            const subtopicoId = $(this).val();
-            carregarFilhos(subtopicoId, '#categoria_id', 'categoria');
-        });
-        
-        // Se já houver área selecionada, carregar unidades
-        if ($('#area_id').val()) {
-            carregarFilhos($('#area_id').val(), '#unidade_id', 'unidade');
-        }
+
+    // --- Event Listeners ---
+
+    $('#area_id').on('change', function() {
+      carregarFilhos(this.value, '#unidade_id');
+      // Reseta todos os campos filhos
+      $('#topico_id, #subtopico_id, #categoria_id').html('<option value="">Selecione</option>').prop('disabled', true);
     });
-    
-    // Toggle dos filtros
-    function toggleFilters() {
-        const content = document.getElementById('filtersContent');
-        const btn = document.getElementById('toggleFiltersBtn');
-        const text = document.getElementById('toggleFiltersText');
-        const icon = btn.querySelector('i');
-        
-        if (content.style.display === 'none' || !content.style.display) {
-            content.style.display = 'block';
-            icon.className = 'fas fa-chevron-up me-1';
-            text.textContent = 'Ocultar Filtros';
-        } else {
-            content.style.display = 'none';
-            icon.className = 'fas fa-chevron-down me-1';
-            text.textContent = 'Mostrar Filtros';
-        }
-    }
-    
-    // Auto-submit na busca com debounce
-    let searchTimeout;
-    $('#search').on('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            $('#filterForm').submit();
-        }, 500);
+
+    $('#unidade_id').on('change', function() {
+      carregarFilhos(this.value, '#topico_id');
+      $('#subtopico_id, #categoria_id').html('<option value="">Selecione</option>').prop('disabled', true);
     });
+
+    $('#topico_id').on('change', function() {
+      carregarFilhos(this.value, '#subtopico_id');
+      $('#categoria_id').html('<option value="">Selecione</option>').prop('disabled', true);
+    });
+
+    $('#subtopico_id').on('change', function() {
+      carregarFilhos(this.value, '#categoria_id');
+    });
+  });
+  
+  // Toggle dos filtros
+  function toggleFilters() {
+      const content = document.getElementById('filtersContent');
+      const btn = document.getElementById('toggleFiltersBtn');
+      const text = document.getElementById('toggleFiltersText');
+      const icon = btn.querySelector('i');
+      
+      if (content.style.display === 'none' || !content.style.display) {
+          content.style.display = 'block';
+          icon.className = 'fas fa-chevron-up me-1';
+          text.textContent = 'Ocultar Filtros';
+      } else {
+          content.style.display = 'none';
+          icon.className = 'fas fa-chevron-down me-1';
+          text.textContent = 'Mostrar Filtros';
+      }
+  }
     
     // Notificação ao adicionar questão
     if (typeof window.addQuestionToSelection !== 'undefined') {

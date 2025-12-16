@@ -6,6 +6,11 @@ from app.serializers import ConteudoSerializer
 
 
 def buscar_conteudos_filho(request):
+    """
+    Retorna conteúdos filhos de um pai específico.
+    Usado para montar a hierarquia Área -> Unidade -> Tópico -> Subtópico -> Categoria via AJAX,
+    da mesma forma que na tela de cadastro de questões.
+    """
     pai_id = request.GET.get('pai_id')
     if not pai_id:
         return JsonResponse({'error': 'pai_id ausente'}, status=400)
