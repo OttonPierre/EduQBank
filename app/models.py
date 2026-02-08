@@ -1,6 +1,20 @@
 from django.db import models
 from ckeditor_uploader.fields import RichTextUploadingField
 
+class Banca(models.Model):
+    """Banca organizadora de concurso/vestibular (ex.: FGV, CESPE, VUNESP)."""
+    nome = models.CharField(max_length=200)
+    sigla = models.CharField(max_length=30, blank=True)
+
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Banca'
+        verbose_name_plural = 'Bancas'
+
+    def __str__(self):
+        return f"{self.sigla}" if self.sigla else self.nome
+
+
 class Conteudo(models.Model):
     nome = models.CharField(max_length=500)
     pai = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT, related_name='subconteudos')

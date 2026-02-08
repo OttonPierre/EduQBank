@@ -1,11 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import bancas as bancas_views
 
 router = DefaultRouter()
 router.register(r'questoes', views.QuestaoViewSet)
 
 urlpatterns = [
+    path('bancas/', bancas_views.api_banca_list_or_create, name='api_banca_list'),
+    path('bancas/<int:pk>/', bancas_views.api_banca_detail_update_delete, name='api_banca_detail'),
     path('auth/signup/', views.signup, name='signup'),
     path('auth/login/', views.login_view, name='login'),
     path('auth/user-info/', views.user_info, name='user_info'),

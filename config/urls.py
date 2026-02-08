@@ -43,4 +43,6 @@ urlpatterns = [
     
     # Cadastro de questão (staff)
     path('cadastro_questao/', views.cadastro_questao, name='cadastro_questao'),
+    # CRUD Bancas (staff, AJAX)
+    path('bancas/', views.bancas_page, name='bancas_page'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

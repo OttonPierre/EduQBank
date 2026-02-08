@@ -11,6 +11,7 @@ from .export import print_test_docx
 from .content import buscar_conteudos_filho, list_conteudos, get_unique_values
 from .upload import upload_image
 from .pages import index, questoes_list, questao_detail as questao_detail_page, criar_prova, perfil
+from .bancas import bancas_page
 
 __all__ = [
     'signup',
@@ -23,6 +24,7 @@ __all__ = [
     'list_questoes',
     'questao_detail',
     'cadastro_questao',
+    'bancas_page',
     'print_test_docx',
     'buscar_conteudos_filho',
     'list_conteudos',

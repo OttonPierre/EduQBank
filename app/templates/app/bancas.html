@@ -1,0 +1,289 @@
+{% extends "app/base.html" %}
+{% load static %}
+
+{% block title %}Bancas - EduQBank{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bancas-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--light-gray);
+    }
+    .bancas-table th {
+        font-weight: 600;
+        color: var(--dark-color);
+        border-bottom: 2px solid var(--primary-color);
+    }
+    .bancas-table td {
+        vertical-align: middle;
+    }
+    .btn-edit, .btn-delete {
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    .modal-content {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+        border-bottom: 1px solid var(--light-gray);
+        padding: 1rem 1.5rem;
+    }
+    .modal-footer {
+        border-top: 1px solid var(--light-gray);
+        padding: 1rem 1.5rem;
+    }
+    #toastMessage {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 9999;
+        min-width: 280px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-university me-2"></i>Bancas
+        </h1>
+        <button type="button" class="btn btn-primary" id="btnNovaBanca" data-bs-toggle="modal" data-bs-target="#modalBanca">
+            <i class="fas fa-plus me-1"></i>Nova banca
+        </button>
+    </div>
+
+    <div class="bancas-card">
+        <div id="loadingBancas" class="text-center py-5 text-muted">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Carregando...</p>
+        </div>
+        <div id="wrapTable" style="display: none;">
+            <div class="table-responsive">
+                <table class="table bancas-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nome</th>
+                            <th>Sigla</th>
+                            <th width="140">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyBancas"></tbody>
+                </table>
+            </div>
+            <p id="emptyMessage" class="text-muted text-center py-4" style="display: none;">Nenhuma banca cadastrada. Clique em "Nova banca" para adicionar.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Criar/Editar -->
+<div class="modal fade" id="modalBanca" tabindex="-1" aria-labelledby="modalBancaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalBancaLabel">Nova banca</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formBanca">
+                    <input type="hidden" id="bancaId" name="id" value="">
+                    <div class="mb-3">
+                        <label for="bancaNome" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="bancaNome" name="nome" required placeholder="Ex.: Fundação Getulio Vargas">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bancaSigla" class="form-label">Sigla</label>
+                        <input type="text" class="form-control" id="bancaSigla" name="sigla" placeholder="Ex.: FGV">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarBanca">
+                    <i class="fas fa-save me-1"></i>Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toastMessage" class="alert alert-success" role="alert" style="display: none;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const getCookie = (name) => {
+        let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    };
+
+    const apiBase = '{% url "api_banca_list" %}'.replace(/\/$/, '');
+    const api = {
+        list: '{% url "api_banca_list" %}',
+        create: '{% url "api_banca_list" %}',
+        detail: (id) => apiBase + '/' + id + '/',
+        update: (id) => apiBase + '/' + id + '/',
+        delete: (id) => apiBase + '/' + id + '/',
+    };
+
+    const csrfToken = getCookie('csrftoken');
+
+    const fetchOpts = (method, body) => {
+        const opts = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'Accept': 'application/json',
+            },
+            credentials: 'same-origin',
+        };
+        if (body !== undefined) opts.body = JSON.stringify(body);
+        return opts;
+    };
+
+    function showToast(message, type) {
+        type = type || 'success';
+        const el = document.getElementById('toastMessage');
+        el.className = 'alert alert-' + type;
+        el.textContent = message;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 3500);
+    }
+
+    function renderRow(b) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = b.id;
+        tr.innerHTML = `
+            <td>${b.id}</td>
+            <td>${escapeHtml(b.nome)}</td>
+            <td>${escapeHtml(b.sigla)}</td>
+            <td>
+                <button type="button" class="btn btn-outline-primary btn-edit me-1" data-id="${b.id}" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-delete" data-id="${b.id}" title="Excluir">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+        `;
+        return tr;
+    }
+
+    function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    function loadBancas() {
+        const loading = document.getElementById('loadingBancas');
+        const wrap = document.getElementById('wrapTable');
+        const tbody = document.getElementById('tbodyBancas');
+        const empty = document.getElementById('emptyMessage');
+
+        fetch(api.list, { method: 'GET', credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                loading.style.display = 'none';
+                wrap.style.display = 'block';
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+                empty.style.display = 'none';
+                data.forEach(b => tbody.appendChild(renderRow(b)));
+            })
+            .catch(() => {
+                loading.style.display = 'none';
+                wrap.style.display = 'block';
+                showToast('Erro ao carregar bancas.', 'danger');
+            });
+    }
+
+    const modalEl = document.getElementById('modalBanca');
+    const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+    function openModal(title, id) {
+        document.getElementById('modalBancaLabel').textContent = id ? 'Editar banca' : 'Nova banca';
+        document.getElementById('bancaId').value = id || '';
+        document.getElementById('bancaNome').value = '';
+        document.getElementById('bancaSigla').value = '';
+        if (id) {
+            fetch(api.detail(id), { method: 'GET', credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(b => {
+                    document.getElementById('bancaNome').value = b.nome;
+                    document.getElementById('bancaSigla').value = b.sigla || '';
+                })
+                .catch(() => showToast('Erro ao carregar banca.', 'danger'));
+        }
+        if (modal) modal.show();
+    }
+
+    function saveBanca() {
+        const id = document.getElementById('bancaId').value;
+        const nome = document.getElementById('bancaNome').value.trim();
+        const sigla = document.getElementById('bancaSigla').value.trim();
+        if (!nome) {
+            showToast('Preencha o nome.', 'warning');
+            return;
+        }
+        if (id) {
+            fetch(api.update(id), fetchOpts('PUT', { nome, sigla }))
+                .then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(j)))
+                .then(() => {
+                    showToast('Banca atualizada.');
+                    if (modal) modal.hide();
+                    loadBancas();
+                })
+                .catch(e => showToast(e.error || 'Erro ao atualizar.', 'danger'));
+        } else {
+            fetch(api.create, fetchOpts('POST', { nome, sigla }))
+                .then(r => r.status === 201 ? r.json() : r.json().then(j => Promise.reject(j)))
+                .then(() => {
+                    showToast('Banca cadastrada.');
+                    if (modal) modal.hide();
+                    loadBancas();
+                })
+                .catch(e => showToast(e.error || 'Erro ao cadastrar.', 'danger'));
+        }
+    }
+
+    function deleteBanca(id) {
+        if (!confirm('Excluir esta banca?')) return;
+        fetch(api.delete(id), fetchOpts('DELETE'))
+            .then(r => {
+                if (r.ok) return r.json();
+                return r.json().then(j => Promise.reject(j));
+            })
+            .then(() => {
+                showToast('Banca excluída.');
+                loadBancas();
+            })
+            .catch(e => showToast(e.error || 'Erro ao excluir.', 'danger'));
+    }
+
+    document.getElementById('btnNovaBanca').addEventListener('click', () => openModal('Nova banca'));
+    document.getElementById('btnSalvarBanca').addEventListener('click', saveBanca);
+
+    document.getElementById('tbodyBancas').addEventListener('click', (e) => {
+        const edit = e.target.closest('.btn-edit');
+        const del = e.target.closest('.btn-delete');
+        if (edit) openModal('Editar banca', edit.dataset.id);
+        if (del) deleteBanca(del.dataset.id);
+    });
+
+    loadBancas();
+})();
+</script>
+{% endblock %}
